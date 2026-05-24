@@ -340,6 +340,115 @@ body {
 .mermaid-wrap { margin: 10px 0; }
 .mermaid-wrap pre.mermaid { background: none; border: none; padding: 0; overflow: visible; }
 
+/* ── Section kind badges ─────────────────────────────────────────── */
+.section-kind-badge {
+  font-size: .65rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 3px; margin-left: 8px; vertical-align: middle;
+}
+.badge-questions { background: rgba(210,153,34,.15); color: var(--yellow); }
+.badge-steps     { background: rgba(63,185,80,.12);  color: var(--green); }
+.badge-risks     { background: rgba(248,81,73,.12);  color: var(--red); }
+.badge-files,
+.badge-stack,
+.badge-preconditions { background: var(--bg3); color: var(--text2); }
+
+/* ── Section left-border accents ─────────────────────────────────── */
+.section[data-kind="questions"] { border-left: 3px solid var(--yellow); padding-left: 12px; }
+.section[data-kind="steps"]     { border-left: 3px solid var(--green);  padding-left: 12px; }
+.section[data-kind="risks"]     { border-left: 3px solid var(--red);    padding-left: 12px; }
+
+/* ── Questions indicator banner ──────────────────────────────────── */
+.questions-indicator {
+  position: sticky; top: 45px; z-index: 50;
+  background: rgba(210,153,34,.15); border-bottom: 1px solid rgba(210,153,34,.3);
+  padding: 6px 20px; display: flex; align-items: center; gap: 12px;
+  font-size: .85rem; color: var(--yellow);
+  transition: background .2s ease, color .2s ease;
+}
+.questions-indicator.all-answered {
+  background: rgba(63,185,80,.1); border-bottom-color: rgba(63,185,80,.3);
+  color: var(--green);
+}
+.qi-link { color: inherit; text-decoration: underline; margin-left: auto; }
+
+/* ── File groups ──────────────────────────────────────────────────── */
+.file-groups { display: flex; flex-direction: column; gap: 6px; }
+.file-group { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.file-group-header {
+  list-style: none; padding: 7px 12px; font-size: .8rem; font-weight: 600;
+  color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 6px;
+  background: var(--bg2);
+}
+.file-group-header::-webkit-details-marker { display: none; }
+.file-count {
+  background: var(--bg3); border-radius: 10px; padding: 0 6px;
+  font-size: .7rem; margin-left: auto;
+}
+.file-group-body { padding: 4px 8px 8px; background: var(--bg); }
+
+/* ── Bulk toolbar ────────────────────────────────────────────────── */
+.bulk-toolbar {
+  display: flex; gap: 8px; align-items: center; padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.bulk-btn {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 5px;
+  padding: 4px 10px; font-size: .78rem; color: var(--text2); cursor: pointer;
+  transition: all .1s;
+}
+.bulk-btn:hover { background: var(--bg3); color: var(--text); }
+.bulk-status { font-size: .78rem; color: var(--text3); margin-left: auto; }
+
+/* ── Priority picker ─────────────────────────────────────────────── */
+.priority-picker { display: flex; gap: 2px; margin-left: 4px; }
+.prio-btn {
+  width: 20px; height: 20px; border-radius: 3px; font-size: .65rem; font-weight: 700;
+  border: 1px solid var(--border); background: var(--bg2); color: var(--text3);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .1s;
+}
+.prio-btn:hover { color: var(--text); border-color: var(--text2); }
+.prio-btn[data-prio="high"].active { background: rgba(248,81,73,.2);  color: var(--red);    border-color: var(--red); }
+.prio-btn[data-prio="med"].active  { background: rgba(210,153,34,.2); color: var(--yellow); border-color: var(--yellow); }
+.prio-btn[data-prio="low"].active  { background: rgba(63,185,80,.15); color: var(--green);  border-color: var(--green); }
+
+/* ── Segmented controls (gear menu) ─────────────────────────────── */
+.pref-row { margin-bottom: 12px; }
+.pref-row:last-child { margin-bottom: 0; }
+.pref-label { display: block; font-size: .72rem; color: var(--text2); margin-bottom: 5px; }
+.seg-ctrl {
+  display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+}
+.seg-btn {
+  flex: 1; padding: 5px 8px; font-size: .78rem; background: var(--bg3); color: var(--text2);
+  border: none; border-right: 1px solid var(--border); cursor: pointer; transition: all .1s;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn:hover { background: var(--bg); color: var(--text); }
+.seg-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+.swatches .seg-btn { width: 28px; height: 28px; flex: none; padding: 0; }
+.swatch { background: var(--swatch, #58a6ff) !important; border-radius: 0; }
+.swatch.active { outline: 2px solid var(--text); outline-offset: -3px; }
+
+/* ── Focus / compact mode ────────────────────────────────────────── */
+[data-review-mode="focus"] .step-card[data-state="approved"] .step-body,
+[data-review-mode="focus"] .step-card[data-state="struck"]   .step-body { display: none !important; }
+[data-review-mode="focus"] .step-card[data-state="approved"] { opacity: .55; }
+[data-review-mode="focus"] .step-card[data-state="struck"]   { opacity: .35; }
+#focus-btn.active { background: var(--accent-bg) !important; color: var(--accent) !important; border-color: var(--accent) !important; }
+
+/* ── Pending step visual ─────────────────────────────────────────── */
+.step-card[data-state=""] .step-num,
+.step-card:not([data-state]) .step-num {
+  background: rgba(210,153,34,.1); border: 1px dashed var(--yellow); color: var(--yellow);
+}
+
+/* ── Sidebar Q-badge ─────────────────────────────────────────────── */
+.toc-q-badge {
+  background: var(--yellow); color: #000; border-radius: 8px; padding: 0 5px;
+  font-size: .65rem; font-weight: 700; margin-left: 4px; line-height: 1.5;
+}
+
 /* ── Print ───────────────────────────────────────────────────────── */
 @media print {
   #sidebar, #action-bar, #gear-btn, .step-actions { display: none !important; }

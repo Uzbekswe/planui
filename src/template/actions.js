@@ -6,19 +6,88 @@
   const dataEl = document.getElementById("planui-data");
   const plan = dataEl ? JSON.parse(dataEl.textContent || "{}") : {};
   const planId = plan.planId || "unknown";
+  const PLAN_ID = planId;
   const STORAGE_KEY = "planui-state-" + planId;
 
-  // State: { steps: { [id]: "approved"|"struck"|"" }, comments: { [id]: string }, questions: { [id]: string } }
+  // Increment when the persisted shape is incompatible with the current schema.
+  // Absent _v (Phase 1 initial release) is treated as v0 — still compatible.
+  const STATE_SCHEMA_VERSION = 1;
+
   function loadState() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (raw._v !== undefined && raw._v !== STATE_SCHEMA_VERSION) return {};
+      return raw;
+    } catch { return {}; }
   }
-  function saveState(state) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, _v: STATE_SCHEMA_VERSION }));
+    } catch {}
   }
   let state = loadState();
-  if (!state.steps)    state.steps    = {};
-  if (!state.comments) state.comments = {};
-  if (!state.questions) state.questions = {};
+  if (!state.steps)      state.steps      = {};
+  if (!state.comments)   state.comments   = {};
+  if (!state.questions)  state.questions  = {};
+  if (!state.priorities) state.priorities = {};
+  if (!state.expanded)   state.expanded   = {};
+
+  // ── Pref helpers ──────────────────────────────────────────────────
+  function loadPref(attr) {
+    try { return localStorage.getItem("planui-pref-" + attr); } catch { return null; }
+  }
+  function resolveTheme(pref) {
+    if (pref !== "system") return pref;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  function applyPref(attr, val) {
+    const resolved = attr === "theme" ? resolveTheme(val) : val;
+    document.documentElement.setAttribute("data-" + attr, resolved);
+    try { localStorage.setItem("planui-pref-" + attr, val); } catch {}
+    // Sync segmented control active state
+    const ctrl = document.querySelector(".seg-ctrl[data-pref='" + attr + "']");
+    if (ctrl) {
+      ctrl.querySelectorAll(".seg-btn").forEach(function (btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-val") === val);
+      });
+    }
+  }
+
+  // ── Review semantics (canonical source of truth) ─────────────────
+  // Step states:  "approved" | "struck" | "commenting" | ""
+  //
+  // RULE: Only "approved" and "struck" count as RESOLVED.
+  // A step in "commenting" state, or a step with only text in the comments
+  // field, remains UNRESOLVED — comments are advisory feedback only and
+  // do NOT satisfy approval gating.
+  //
+  // All review gating MUST go through isStepResolved() so this rule
+  // cannot be accidentally redefined in one place but not others.
+  function isStepResolved(id) {
+    const s = state.steps[id] || "";
+    return s === "approved" || s === "struck";
+  }
+
+  // ── Questions indicator ────────────────────────────────────────────
+  function updateQuestionsIndicator() {
+    const indicator = document.getElementById("questions-indicator");
+    if (!indicator) return;
+    const qCards = Array.from(document.querySelectorAll(".question-card"));
+    const total = qCards.length;
+    if (total === 0) { indicator.style.display = "none"; return; }
+    const unanswered = qCards.filter(function (c) {
+      const qid = c.getAttribute("data-qid");
+      return !(qid && state.questions[qid] && state.questions[qid].trim());
+    }).length;
+    const answered = total - unanswered;
+    indicator.style.display = "flex";
+    const textEl = document.getElementById("qi-text");
+    if (textEl) textEl.textContent = answered + " / " + total + " questions answered";
+    indicator.classList.toggle("all-answered", unanswered === 0);
+    // Update sidebar Q-badge
+    const badge = document.getElementById("toc-q-badge");
+    if (badge) badge.textContent = unanswered > 0 ? String(unanswered) : "";
+  }
 
   // ── Sidebar TOC ───────────────────────────────────────────────────
   function buildSidebar() {
@@ -32,10 +101,18 @@
       const heading = sec.querySelector(".section-heading");
       if (!heading) return;
 
+      // Extract plain text (skip badge span)
+      function headingText() {
+        return Array.from(heading.childNodes)
+          .filter(function (n) { return n.nodeType === 3; })
+          .map(function (n) { return n.textContent; })
+          .join("").trim() || kind;
+      }
+
       if (kind === "steps" && stepsSection) {
         const label = document.createElement("div");
         label.className = "sidebar-label";
-        label.textContent = heading.textContent || "Steps";
+        label.textContent = headingText();
         sidebar.appendChild(label);
 
         const stepCards = sec.querySelectorAll(".step-card");
@@ -56,19 +133,26 @@
         const link = document.createElement("a");
         link.className = "sidebar-link";
         link.href = "#" + sec.id;
-        link.textContent = heading.textContent || kind;
+        link.textContent = headingText();
+
+        if (kind === "questions") {
+          const qCards = sec.querySelectorAll(".question-card");
+          if (qCards.length > 0) {
+            const badge = document.createElement("span");
+            badge.className = "toc-q-badge";
+            badge.id = "toc-q-badge";
+            badge.textContent = String(qCards.length);
+            link.appendChild(badge);
+          }
+        }
+
         div.appendChild(link);
         sidebar.appendChild(div);
       }
     });
   }
 
-  // ── Gear menu (theme/font/color) ──────────────────────────────────
-  function resolveTheme(pref) {
-    if (pref !== "system") return pref;
-    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-  }
-
+  // ── Gear menu — segmented controls ───────────────────────────────
   function initGear() {
     const btn = document.getElementById("gear-btn");
     const menu = document.getElementById("gear-menu");
@@ -80,45 +164,40 @@
     });
     document.addEventListener("click", function () { menu.classList.remove("open"); });
 
-    function applyPref(attr, val) {
-      const resolved = attr === "theme" ? resolveTheme(val) : val;
-      document.documentElement.setAttribute("data-" + attr, resolved);
-      try { localStorage.setItem("planui-pref-" + attr, val); } catch {}
-    }
-
-    // Restore saved prefs; default theme to system preference if never set
+    // Restore saved prefs
     ["theme", "font", "color"].forEach(function (attr) {
-      const saved = (function () {
-        try { return localStorage.getItem("planui-pref-" + attr); } catch { return null; }
-      })();
-      const defaultVal = document.documentElement.getAttribute("data-" + attr);
-      const sel = document.getElementById("gear-" + attr);
+      const saved = loadPref(attr);
       if (saved) {
         applyPref(attr, saved);
-        if (sel) sel.value = saved;
       } else if (attr === "theme") {
         applyPref("theme", "system");
-        if (sel) sel.value = "system";
-      } else if (defaultVal && sel) {
-        sel.value = defaultVal;
-      }
-      if (sel) {
-        sel.addEventListener("change", function () { applyPref(attr, sel.value); });
       }
     });
 
-    // Re-apply when OS colour scheme changes (only matters if "system" is selected)
+    // Segmented control click handlers
+    document.querySelectorAll(".seg-ctrl").forEach(function (ctrl) {
+      const pref = ctrl.getAttribute("data-pref");
+      if (!pref) return;
+      ctrl.addEventListener("click", function (e) {
+        const segBtn = e.target.closest(".seg-btn");
+        if (!segBtn) return;
+        const val = segBtn.getAttribute("data-val");
+        if (!val) return;
+        applyPref(pref, val);
+      });
+    });
+
+    // Re-apply when OS colour scheme changes
     window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () {
-      try {
-        const saved = localStorage.getItem("planui-pref-theme") || "system";
-        if (saved === "system") applyPref("theme", "system");
-      } catch {}
+      const saved = loadPref("theme") || "system";
+      if (saved === "system") applyPref("theme", "system");
     });
   }
 
   // ── Step cards ────────────────────────────────────────────────────
   function applyStepState(card, id) {
     const s = state.steps[id] || "";
+    card.dataset.state = s;
     card.classList.toggle("approved",   s === "approved");
     card.classList.toggle("struck",     s === "struck");
     card.classList.toggle("commenting", s === "commenting");
@@ -132,7 +211,7 @@
 
     const sidebarLink = document.querySelector("[data-step-sidebar='" + id + "']");
     if (sidebarLink) {
-      sidebarLink.classList.toggle("done",  s === "approved");
+      sidebarLink.classList.toggle("done",   s === "approved");
       sidebarLink.classList.toggle("struck", s === "struck");
     }
 
@@ -157,6 +236,22 @@
         textarea.value = state.comments[id];
       }
 
+      // Priority picker — restore + wire up
+      card.querySelectorAll(".prio-btn").forEach(function (btn) {
+        if (state.priorities[id] === btn.getAttribute("data-prio")) {
+          btn.classList.add("active");
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          const prio = btn.getAttribute("data-prio");
+          const already = state.priorities[id] === prio;
+          card.querySelectorAll(".prio-btn").forEach(function (b) { b.classList.remove("active"); });
+          state.priorities[id] = already ? null : prio;
+          if (!already) btn.classList.add("active");
+          saveState();
+        });
+      });
+
       // Toggle body on header click
       const header = card.querySelector(".step-header");
       const body   = card.querySelector(".step-body");
@@ -168,14 +263,14 @@
       }
 
       // Approve button
-      const approveBtn = card.querySelector(".step-btn.approve");
-      if (approveBtn) {
-        approveBtn.addEventListener("click", function (e) {
+      const approveBtnEl = card.querySelector(".step-btn.approve");
+      if (approveBtnEl) {
+        approveBtnEl.addEventListener("click", function (e) {
           e.stopPropagation();
           state.steps[id] = state.steps[id] === "approved" ? "" : "approved";
-          saveState(state);
+          saveState();
           applyStepState(card, id);
-          updateBarStatus();
+          updateApproveGating();
         });
       }
 
@@ -185,9 +280,9 @@
         strikeBtn.addEventListener("click", function (e) {
           e.stopPropagation();
           state.steps[id] = state.steps[id] === "struck" ? "" : "struck";
-          saveState(state);
+          saveState();
           applyStepState(card, id);
-          updateBarStatus();
+          updateApproveGating();
         });
       }
 
@@ -198,7 +293,7 @@
           e.stopPropagation();
           const prev = state.steps[id];
           state.steps[id] = prev === "commenting" ? "" : "commenting";
-          saveState(state);
+          saveState();
           applyStepState(card, id);
           const ta = card.querySelector(".step-comment-area textarea");
           if (ta && state.steps[id] === "commenting") ta.focus();
@@ -209,7 +304,7 @@
       if (textarea) {
         textarea.addEventListener("input", function () {
           state.comments[id] = textarea.value;
-          saveState(state);
+          saveState();
           const btn = card.querySelector(".step-btn.comment");
           if (btn) btn.classList.toggle("active", !!textarea.value);
         });
@@ -218,6 +313,11 @@
   }
 
   // ── Questions ─────────────────────────────────────────────────────
+  function getAnswer(card) {
+    const qid = card.getAttribute("data-qid");
+    return (qid && state.questions[qid] && state.questions[qid].trim()) ? state.questions[qid] : null;
+  }
+
   function initQuestions() {
     document.querySelectorAll(".question-card").forEach(function (card) {
       const qid = card.getAttribute("data-qid");
@@ -233,15 +333,13 @@
         }
         ta.addEventListener("input", function () {
           state.questions[qid] = ta.value;
-          saveState(state);
+          saveState();
           ta.classList.toggle("answered", !!ta.value);
           updateApproveGating();
         });
       } else if (chipGroup) {
-        // Restore saved chip selection
         if (state.questions[qid]) {
-          const inputs = chipGroup.querySelectorAll("input[type=radio]");
-          inputs.forEach(function (inp) {
+          chipGroup.querySelectorAll("input[type=radio]").forEach(function (inp) {
             if (inp.value === state.questions[qid]) inp.checked = true;
           });
         }
@@ -249,7 +347,7 @@
           const radio = e.target;
           if (radio && radio.type === "radio") {
             state.questions[qid] = radio.value;
-            saveState(state);
+            saveState();
             updateApproveGating();
           }
         });
@@ -257,19 +355,36 @@
     });
   }
 
-  // ── Approve gating ────────────────────────────────────────────────
+  // ── Approve gating (dual: questions + steps) ──────────────────────
   function updateApproveGating() {
-    const approveBtn = document.getElementById("approve-btn");
-    const warning    = document.getElementById("questions-warning");
-    if (!approveBtn) return;
-    const qCards = document.querySelectorAll(".question-card");
-    const unanswered = Array.from(qCards).filter(function (card) {
+    const approveBtnEl = document.getElementById("approve-btn");
+    const warning      = document.getElementById("questions-warning");
+    if (!approveBtnEl) return;
+
+    const qCards = Array.from(document.querySelectorAll(".question-card"));
+    const unanswered = qCards.filter(function (card) {
       const qid = card.getAttribute("data-qid");
       return !(qid && state.questions[qid] && state.questions[qid].trim());
     }).length;
-    const allAnswered = unanswered === 0;
-    approveBtn.disabled = !allAnswered;
-    approveBtn.title = allAnswered ? "" : "Answer all open questions before approving";
+
+    const stepCards = Array.from(document.querySelectorAll(".step-card"));
+    const unresolved = stepCards.filter(function (card) {
+      return !isStepResolved(card.getAttribute("data-step-id"));
+    }).length;
+
+    const approvable = unanswered === 0 && unresolved === 0;
+    approveBtnEl.disabled = !approvable;
+
+    if (approvable) {
+      approveBtnEl.title = "All questions answered and steps reviewed";
+    } else if (unanswered > 0 && unresolved > 0) {
+      approveBtnEl.title = unanswered + " question(s) unanswered · " + unresolved + " step(s) unreviewed";
+    } else if (unanswered > 0) {
+      approveBtnEl.title = unanswered + " question(s) unanswered";
+    } else {
+      approveBtnEl.title = unresolved + " step(s) unreviewed";
+    }
+
     if (warning) {
       if (unanswered > 0 && qCards.length > 0) {
         warning.textContent = unanswered + " unanswered question" + (unanswered !== 1 ? "s" : "");
@@ -278,140 +393,166 @@
         warning.style.display = "none";
       }
     }
+
+    updateQuestionsIndicator();
+    updateBarStatus();
   }
 
-  // ── Bar status + progress ─────────────────────────────────────────
+  // ── Bar status + progress (3-way: approved / struck / pending) ────
   function updateBarStatus() {
-    const el   = document.getElementById("bar-status");
-    const fill = document.getElementById("progress-fill");
-    const stepCards = document.querySelectorAll(".step-card");
+    const el        = document.getElementById("bar-status");
+    const fill      = document.getElementById("progress-fill");
+    const stepCards = Array.from(document.querySelectorAll(".step-card"));
     if (!stepCards.length) {
       if (el) el.textContent = "";
       if (fill) fill.style.width = "0%";
       return;
     }
-    const resolved = Array.from(stepCards).filter(function (c) {
-      const s = state.steps[c.getAttribute("data-step-id")];
-      return s === "approved" || s === "struck";
-    }).length;
-    const approved = Array.from(stepCards).filter(function (c) {
-      return state.steps[c.getAttribute("data-step-id")] === "approved";
-    }).length;
-    if (el) el.textContent = approved + " / " + stepCards.length + " steps approved";
-    if (fill) fill.style.width = (resolved / stepCards.length * 100) + "%";
+    const total    = stepCards.length;
+    const approved = stepCards.filter(function (c) { return state.steps[c.getAttribute("data-step-id")] === "approved"; }).length;
+    const struck   = stepCards.filter(function (c) { return state.steps[c.getAttribute("data-step-id")] === "struck"; }).length;
+    const pending  = total - approved - struck;
+    if (el) el.textContent = approved + " approved · " + struck + " struck · " + pending + " pending";
+    const pct = Math.round((approved + struck) / total * 100);
+    if (fill) fill.style.width = pct + "%";
   }
 
-  // ── Copy feedback ─────────────────────────────────────────────────
-  function buildFeedback() {
-    const lines = [];
-    lines.push("```planresponse " + planId);
-
-    // Determine action
-    const allApproved = Array.from(document.querySelectorAll(".step-card")).every(function (c) {
-      const id = c.getAttribute("data-step-id");
-      return state.steps[id] === "approved";
-    });
-    const hasComments = Object.values(state.comments).some(Boolean);
-    const action = (hasComments || !allApproved) ? "modify" : "approve";
-    lines.push(action);
-
-    // Questions
-    document.querySelectorAll(".question-card").forEach(function (card) {
-      const qid = card.getAttribute("data-qid");
-      const val = (qid && state.questions[qid]) ? state.questions[qid].trim() : "(no answer)";
-      const textEl = card.querySelector(".question-text");
-      lines.push((qid || "q") + ": " + val);
-    });
-
-    // Step annotations
-    const annotations = [];
-    document.querySelectorAll(".step-card").forEach(function (card) {
-      const id = card.getAttribute("data-step-id");
-      if (!id) return;
-      const stepState = state.steps[id] || "";
-      const comment   = state.comments[id] || "";
-      const titleEl   = card.querySelector(".step-title");
-      const num       = card.getAttribute("data-step-index") || "?";
-      const title     = titleEl ? titleEl.textContent.trim() : id;
-      if (stepState === "struck") {
-        annotations.push("Step " + num + " [remove]: " + title);
-      } else if (comment) {
-        annotations.push("Step " + num + " [feedback]: " + comment);
-      }
-    });
-
-    if (annotations.length) {
-      lines.push("");
-      lines.push("feedback:");
-      annotations.forEach(function (a) { lines.push("  " + a); });
+  // ── Bulk actions ──────────────────────────────────────────────────
+  function initBulkActions() {
+    function bulkSet(newState) {
+      document.querySelectorAll(".step-card").forEach(function (card) {
+        const id = card.getAttribute("data-step-id");
+        if (!id) return;
+        state.steps[id] = newState;
+        applyStepState(card, id);
+      });
+      saveState();
+      updateApproveGating();
     }
 
-    lines.push("```");
-    return lines.join("\n");
-  }
+    const approveAll = document.getElementById("bulk-approve-all");
+    const strikeAll  = document.getElementById("bulk-strike-all");
+    const clearAll   = document.getElementById("bulk-clear-all");
+    const resolveBtn = document.getElementById("resolve-remaining-btn");
 
-  function initActionBar() {
-    const copyBtn   = document.getElementById("copy-feedback-btn");
-    const approveBtn = document.getElementById("approve-btn");
-    const exportBtn  = document.getElementById("export-btn");
-    const confirm   = document.getElementById("copy-confirm");
+    if (approveAll) approveAll.addEventListener("click", function () { bulkSet("approved"); });
+    if (strikeAll)  strikeAll.addEventListener("click",  function () { bulkSet("struck"); });
+    if (clearAll)   clearAll.addEventListener("click",   function () { bulkSet(""); });
 
-    if (copyBtn) {
-      copyBtn.addEventListener("click", function () {
-        const text = buildFeedback();
-        navigator.clipboard.writeText(text).then(function () {
-          if (confirm) {
-            confirm.style.display = "inline";
-            setTimeout(function () { confirm.style.display = "none"; }, 2000);
-          }
-        }).catch(function () {
-          // Fallback for non-HTTPS
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.opacity = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-          if (confirm) {
-            confirm.style.display = "inline";
-            setTimeout(function () { confirm.style.display = "none"; }, 2000);
+    if (resolveBtn) {
+      resolveBtn.addEventListener("click", function () {
+        document.querySelectorAll(".step-card").forEach(function (card) {
+          const id = card.getAttribute("data-step-id");
+          if (!id) return;
+          if (!isStepResolved(id)) {
+            state.steps[id] = "approved";
+            applyStepState(card, id);
           }
         });
+        saveState();
+        updateApproveGating();
+      });
+    }
+  }
+
+  // ── Focus mode ────────────────────────────────────────────────────
+  function initFocusMode() {
+    const btn = document.getElementById("focus-btn");
+    if (!btn) return;
+    let active = false;
+    btn.addEventListener("click", function () {
+      active = !active;
+      document.documentElement.setAttribute("data-review-mode", active ? "focus" : "");
+      btn.classList.toggle("active", active);
+      btn.textContent = active ? "Exit focus" : "Focus";
+    });
+  }
+
+  // ── Copy feedback (structured format) ────────────────────────────
+  function buildFeedback() {
+    const qCards    = Array.from(document.querySelectorAll(".question-card"));
+    const stepCards = Array.from(document.querySelectorAll(".step-card"));
+
+    const allApproved = stepCards.length > 0 && stepCards.every(function (c) {
+      return state.steps[c.getAttribute("data-step-id")] === "approved";
+    });
+    const anyStruck = stepCards.some(function (c) {
+      return state.steps[c.getAttribute("data-step-id")] === "struck";
+    });
+    const action = allApproved ? "approve" : anyStruck ? "modify" : "revise";
+
+    let out = "```planresponse " + PLAN_ID + "\n";
+    out += "action: " + action + "\n";
+
+    const answeredQs = qCards.filter(function (c) { return !!getAnswer(c); });
+    if (answeredQs.length > 0) {
+      out += "\nquestions:\n";
+      answeredQs.forEach(function (c) {
+        const qid = c.getAttribute("data-qid");
+        out += "  " + qid + ": " + state.questions[qid].trim() + "\n";
       });
     }
 
-    if (approveBtn) {
-      approveBtn.addEventListener("click", function () {
-        // Build approve response and copy
-        const lines = [];
-        lines.push("```planresponse " + planId);
-        lines.push("approve");
-        document.querySelectorAll(".question-card").forEach(function (card) {
-          const qid = card.getAttribute("data-qid");
-          const val = (qid && state.questions[qid]) ? state.questions[qid].trim() : "";
-          if (qid) lines.push(qid + ": " + val);
-        });
-        lines.push("```");
-        const text = lines.join("\n");
-        navigator.clipboard.writeText(text).catch(function () {
-          const ta = document.createElement("textarea");
-          ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
-          document.body.appendChild(ta); ta.select(); document.execCommand("copy");
-          document.body.removeChild(ta);
-        });
-        if (confirm) {
-          confirm.textContent = "Approval copied!";
-          confirm.style.display = "inline";
-          setTimeout(function () { confirm.style.display = "none"; confirm.textContent = "Copied!"; }, 2500);
-        }
+    const stepLines = [];
+    stepCards.forEach(function (c) {
+      const id   = c.getAttribute("data-step-id");
+      const idx  = c.getAttribute("data-step-index") || "?";
+      const s    = state.steps[id] || "";
+      const cmt  = (state.comments[id] || "").trim();
+      const prio = state.priorities[id];
+      if (s === "struck") {
+        stepLines.push("  Step " + idx + " [remove]" + (cmt ? ": " + cmt : ""));
+      } else if (cmt) {
+        stepLines.push("  Step " + idx + " [feedback]: " + cmt + (prio ? " [" + prio + "]" : ""));
+      } else if (prio) {
+        stepLines.push("  Step " + idx + " [priority:" + prio + "]");
+      }
+    });
+    if (stepLines.length > 0) {
+      out += "\nsteps:\n" + stepLines.join("\n") + "\n";
+    }
+
+    out += "```";
+    return out;
+  }
+
+  function copyToClipboard(text, onDone) {
+    navigator.clipboard.writeText(text).then(onDone).catch(function () {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+      document.body.removeChild(ta);
+      onDone();
+    });
+  }
+
+  function initActionBar() {
+    const copyBtn      = document.getElementById("copy-feedback-btn");
+    const approveBtnEl = document.getElementById("approve-btn");
+    const exportBtn    = document.getElementById("export-btn");
+    const confirm      = document.getElementById("copy-confirm");
+
+    function showConfirm(msg) {
+      if (!confirm) return;
+      confirm.textContent = msg || "Copied!";
+      confirm.style.display = "inline";
+      setTimeout(function () { confirm.style.display = "none"; confirm.textContent = "Copied!"; }, 2500);
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener("click", function () {
+        copyToClipboard(buildFeedback(), function () { showConfirm("Copied!"); });
+      });
+    }
+
+    if (approveBtnEl) {
+      approveBtnEl.addEventListener("click", function () {
+        copyToClipboard(buildFeedback(), function () { showConfirm("Approval copied!"); });
       });
     }
 
     if (exportBtn) {
       exportBtn.addEventListener("click", function () {
-        // Embed current state into the page's data island and download
         const dataEl2 = document.getElementById("planui-data");
         if (dataEl2) {
           const planCopy = JSON.parse(dataEl2.textContent || "{}");
@@ -419,7 +560,6 @@
           dataEl2.textContent = JSON.stringify(planCopy);
         }
         const html = "<!DOCTYPE html>" + document.documentElement.outerHTML;
-        // Restore original
         if (dataEl2) dataEl2.textContent = JSON.stringify(plan);
 
         const blob = new Blob([html], { type: "text/html" });
@@ -442,9 +582,6 @@
     function currentTheme() {
       return document.documentElement.getAttribute("data-theme") || "dark";
     }
-
-    // Icons are in the HTML; CSS shows/hides them via data-theme.
-    // JS only updates aria-label and handles click.
     function updateLabel() {
       const isLight = currentTheme() === "light";
       btn.setAttribute("aria-label", isLight ? "Switch to dark mode" : "Switch to light mode");
@@ -453,10 +590,7 @@
 
     btn.addEventListener("click", function () {
       const next = currentTheme() === "light" ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("planui-pref-theme", next); } catch {}
-      const sel = document.getElementById("gear-theme");
-      if (sel) sel.value = next;
+      applyPref("theme", next);
       updateLabel();
     });
 
@@ -464,30 +598,36 @@
       document.documentElement,
       { attributes: true, attributeFilter: ["data-theme"] }
     );
-
     updateLabel();
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────
+  // Centralised keymap — extend here to add or rebind shortcuts in Phase 2+.
+  const KEYMAP = {
+    navigate_down: ["j", "ArrowDown"],
+    navigate_up:   ["k", "ArrowUp"],
+    approve:       ["a"],
+    strike:        ["s"],
+    comment:       ["c"],
+  };
+
   function initKeyboard() {
     const cards = Array.from(document.querySelectorAll(".step-card"));
     let focus = -1;
 
     document.addEventListener("keydown", function (e) {
       if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
-      if (e.key === "j" || e.key === "ArrowDown") {
+      if (KEYMAP.navigate_down.includes(e.key)) {
         focus = Math.min(focus + 1, cards.length - 1);
         cards[focus] && cards[focus].scrollIntoView({ behavior: "smooth", block: "nearest" });
-      } else if (e.key === "k" || e.key === "ArrowUp") {
+      } else if (KEYMAP.navigate_up.includes(e.key)) {
         focus = Math.max(focus - 1, 0);
         cards[focus] && cards[focus].scrollIntoView({ behavior: "smooth", block: "nearest" });
       } else if (focus >= 0 && cards[focus]) {
         const card = cards[focus];
-        const id   = card.getAttribute("data-step-id");
-        if (!id) return;
-        if (e.key === "a") { card.querySelector(".step-btn.approve") && card.querySelector(".step-btn.approve").click(); }
-        if (e.key === "s") { card.querySelector(".step-btn.strike")  && card.querySelector(".step-btn.strike").click(); }
-        if (e.key === "c") { card.querySelector(".step-btn.comment") && card.querySelector(".step-btn.comment").click(); }
+        if (KEYMAP.approve.includes(e.key))  { card.querySelector(".step-btn.approve") && card.querySelector(".step-btn.approve").click(); }
+        if (KEYMAP.strike.includes(e.key))   { card.querySelector(".step-btn.strike")  && card.querySelector(".step-btn.strike").click(); }
+        if (KEYMAP.comment.includes(e.key))  { card.querySelector(".step-btn.comment") && card.querySelector(".step-btn.comment").click(); }
       }
     });
   }
@@ -511,7 +651,6 @@
       }
     };
     script.onerror = function () {
-      // Fallback: show raw source
       document.querySelectorAll("pre.mermaid").forEach(function (pre) {
         pre.style.fontFamily = "monospace";
         pre.style.whiteSpace = "pre";
@@ -547,8 +686,9 @@
     initThemeToggle();
     initStepCards();
     initQuestions();
+    initBulkActions();
+    initFocusMode();
     updateApproveGating();
-    updateBarStatus();
     initActionBar();
     initKeyboard();
     initMermaid();

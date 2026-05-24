@@ -30,9 +30,34 @@ function renderMdInline(text: string): string {
   return marked.parseInline(text, { async: false }) as string;
 }
 
+function renderGroupedItems(rawLines: string[]): string {
+  const groups: Record<string, string[]> = {};
+  for (const f of rawLines) {
+    const slash = f.indexOf("/");
+    const dir = slash >= 0 ? f.slice(0, slash) : "(root)";
+    (groups[dir] ??= []).push(f);
+  }
+  return Object.entries(groups).map(([dir, files]) => `
+<details class="file-group" open>
+  <summary class="file-group-header">${escapeHtml(dir)}<span class="file-count">${files.length}</span></summary>
+  <div class="file-group-body">
+    ${files.map((f) => `<div class="rail-item"><span>${renderMdInline(f)}</span></div>`).join("\n    ")}
+  </div>
+</details>`).join("\n");
+}
+
+function sectionTypeBadge(kind: PlanSection["kind"]): string {
+  const labels: Partial<Record<PlanSection["kind"], string>> = {
+    questions: "Questions", steps: "Steps", risks: "Risks",
+    files: "Files", stack: "Dependencies", preconditions: "Requirements",
+  };
+  const label = labels[kind];
+  return label ? `<span class="section-kind-badge badge-${kind}">${label}</span>` : "";
+}
+
 function renderSection(sec: PlanSection): string {
   const id = `section-${sec.kind === "note" ? slugify(sec.heading) : sec.kind}`;
-  const headingHtml = `<div class="section-heading">${escapeHtml(sec.heading || sec.kind)}</div>`;
+  const headingHtml = `<div class="section-heading">${escapeHtml(sec.heading || sec.kind)}${sectionTypeBadge(sec.kind)}</div>`;
 
   switch (sec.kind) {
     case "summary":
@@ -46,6 +71,13 @@ function renderSection(sec: PlanSection): string {
       if (!sec.steps?.length) {
         return `<section class="section" id="${id}" data-kind="steps">${headingHtml}<div class="prose-card">${renderMd(sec.bodyMarkdown)}</div></section>`;
       }
+      const bulkToolbar = `
+<div class="bulk-toolbar" id="bulk-toolbar">
+  <button class="bulk-btn" id="bulk-approve-all">✓ Approve all</button>
+  <button class="bulk-btn" id="bulk-strike-all">~~ Strike all</button>
+  <button class="bulk-btn" id="bulk-clear-all">↺ Clear all</button>
+  <span class="bulk-status" id="bulk-status"></span>
+</div>`;
       const stepItems = sec.steps.map((step) => {
         const depBadge = step.dependsOn.length
           ? `<span class="step-dep-badge">blocked by step ${step.dependsOn.join(", ")}</span>`
@@ -64,6 +96,11 @@ function renderSection(sec: PlanSection): string {
       <button class="step-btn approve" title="Approve this step (a)" aria-label="Approve step ${step.index}">✓</button>
       <button class="step-btn strike" title="Strike this step (s)" aria-label="Strike step ${step.index}">~~</button>
       <button class="step-btn comment" title="Add comment (c)" aria-label="Comment on step ${step.index}">✎</button>
+      <div class="priority-picker" data-step-id="${escapeHtml(step.id)}">
+        <button class="prio-btn" data-prio="high" title="High priority">H</button>
+        <button class="prio-btn" data-prio="med" title="Medium priority">M</button>
+        <button class="prio-btn" data-prio="low" title="Low priority">L</button>
+      </div>
     </div>
   </div>
   ${bodyHtml}
@@ -76,6 +113,7 @@ function renderSection(sec: PlanSection): string {
       return `
 <section class="section" id="${id}" data-kind="steps">
   ${headingHtml}
+  ${bulkToolbar}
   <div class="step-list">${stepItems}</div>
 </section>`;
     }
@@ -113,13 +151,38 @@ function renderSection(sec: PlanSection): string {
 </section>`;
     }
 
-    case "preconditions":
-    case "files":
-    case "stack": {
-      const items = sec.bodyMarkdown
+    case "files": {
+      const rawLines = sec.bodyMarkdown
         .split("\n")
         .map((l) => l.replace(/^\s*[-*+]\s+/, "").trim())
-        .filter(Boolean)
+        .filter(Boolean);
+      if (!rawLines.length) {
+        return `<section class="section" id="${id}" data-kind="files">${headingHtml}<div class="prose-card">${renderMd(sec.bodyMarkdown)}</div></section>`;
+      }
+      const groupHtml = renderGroupedItems(rawLines);
+      return `
+<section class="section" id="${id}" data-kind="files">
+  ${headingHtml}
+  <div class="file-groups">${groupHtml}</div>
+</section>`;
+    }
+
+    case "preconditions":
+    case "stack": {
+      const rawLines = sec.bodyMarkdown
+        .split("\n")
+        .map((l) => l.replace(/^\s*[-*+]\s+/, "").trim())
+        .filter(Boolean);
+      // For stack, group by directory if any paths contain "/"
+      if (sec.kind === "stack" && rawLines.some((l) => l.includes("/"))) {
+        const groupHtml = renderGroupedItems(rawLines);
+        return `
+<section class="section" id="${id}" data-kind="${sec.kind}">
+  ${headingHtml}
+  <div class="file-groups">${groupHtml}</div>
+</section>`;
+      }
+      const items = rawLines
         .map((text) => `<div class="rail-item"><span>${renderMdInline(text)}</span></div>`)
         .join("\n");
       return `
@@ -169,10 +232,18 @@ function sanitizeSentinels(html: string): string {
   return html.replace(/\{\{/g, "&#123;&#123;");
 }
 
+const SECTION_ORDER: Record<PlanSection["kind"], number> = {
+  status: 0, summary: 1, questions: 2, preconditions: 3,
+  steps: 4, risks: 5, files: 6, stack: 7, note: 8,
+};
+
 export async function renderToHtml(doc: PlanDocument): Promise<string> {
   const { html: tmpl, css, js } = await readTemplate();
 
-  const sectionsHtml = sanitizeSentinels(doc.sections.map(renderSection).join("\n"));
+  const orderedSections = [...doc.sections].sort(
+    (a, b) => (SECTION_ORDER[a.kind] ?? 9) - (SECTION_ORDER[b.kind] ?? 9)
+  );
+  const sectionsHtml = sanitizeSentinels(orderedSections.map(renderSection).join("\n"));
 
   const statusSection = doc.sections.find((s) => s.kind === "status");
   const statusBadge = statusSection?.statusText
@@ -183,6 +254,15 @@ export async function renderToHtml(doc: PlanDocument): Promise<string> {
     year: "numeric", month: "short", day: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+
+  const qSection = doc.sections.find((s) => s.kind === "questions");
+  const questionCount = qSection?.questions?.length ?? 0;
+  const questionsIndicator = questionCount > 0
+    ? `<div id="questions-indicator" class="questions-indicator" style="display:none">
+       <span id="qi-text">0 / ${questionCount} questions answered</span>
+       <a href="#section-questions" class="qi-link">Go to questions ↓</a>
+     </div>`
+    : "";
 
   // {{PLAN_JSON}} must be LAST: rawMarkdown may contain sentinel patterns like
   // {{ACTIONS_JS}} which would be consumed before the real replacement runs.
@@ -195,5 +275,6 @@ export async function renderToHtml(doc: PlanDocument): Promise<string> {
     .replace("{{SECTIONS_HTML}}", sectionsHtml)
     .replace("{{RENDERED_AT}}", escapeHtml(renderedDate))
     .replace("{{PLAN_ID}}", escapeHtml(doc.planId))
+    .replace("{{QUESTIONS_INDICATOR}}", questionsIndicator)
     .replace("{{PLAN_JSON}}", JSON.stringify(doc));
 }

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-24
+
+### Added
+- **Dual approval gate** — "Approve plan" button now requires all steps to be approved or struck, not just questions answered; tooltip explains exactly what's blocking
+- **Questions-first ordering** — questions section always renders above steps regardless of plan markdown order
+- **Section type badges** — coloured "Questions / Steps / Risks / Files / Dependencies" labels on each section heading; left-border accent lines distinguish section types visually
+- **Questions indicator banner** — sticky yellow banner below the header shows answered/total progress; turns green when all questions answered; links to the questions section
+- **File grouping** — `## Files` section groups paths by top-level directory using `<details>/<summary>` (open by default); count badge on each group
+- **Bulk actions toolbar** — "Approve all / Strike all / Clear all" buttons above the step list; "Resolve remaining" in the action bar bulk-approves all pending steps
+- **Priority picker** — H / M / L buttons on each step card; persisted in localStorage; included in Copy Feedback output
+- **Segmented controls** — gear menu replaces `<select>` dropdowns with pill-button controls for theme, font, and accent colour (colour shown as swatches)
+- **Focus mode** — "Focus" button in action bar hides resolved step bodies; approved steps dim, struck steps fade further; button activates with accent colour
+- **3-way progress bar** — status line shows "N approved · M struck · P pending" instead of "N / total approved"
+- **Pending step visual** — unreviewed step numbers show dashed yellow border to signal they need attention
+- **Sidebar Q-badge** — Questions TOC entry shows unanswered count; count updates live as questions are answered
+- **Structured feedback format** — "Copy Feedback" now outputs `action: approve/modify/revise`, `questions:` block, and `steps:` block with `[remove]`, `[feedback]`, and `[priority:X]` annotations
+- **`diffStatus?` field on PlanStep** — groundwork for future plan diff/versioning feature
+- **`version?` field on PlanDocument** — groundwork for future diff chaining
+
 ## [0.2.0] - 2026-05-24
 
 ### Fixed
@@ -43,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow: auto-publish to npm on `v*.*.*` tag push
 - MIT License
 
-[Unreleased]: https://github.com/Uzbekswe/planui/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Uzbekswe/planui/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Uzbekswe/planui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Uzbekswe/planui/releases/tag/v0.1.0
