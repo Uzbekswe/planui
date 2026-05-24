@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-24
+
+### Added
+- **Codex CLI integration** — `planui setup codex` registers planui with the Codex CLI MCP system; post-registration validation verifies executable and server paths before reporting success
+- **`planui doctor`** — shows registration status for all integrations including `broken` state with actionable detail; exits non-zero only for broken registrations (not for "not installed")
+- **`planui integrations`** — lists all supported assistants, their status, and capability flags
+- **`planui prompt [assistant]`** — prints a full per-assistant invocation guide (onboarding + activation phrases + plan format reference); defaults to `claude`
+- **Integration adapter layer** (`src/integrations/`) — capability-driven adapter interface with `detect()`, `status()`, `diagnose()`, `register()`, `installSlashCommand()`, `promptTemplate()`; diagnostic collection is separated from console rendering for future `--json` support
+- **`"broken"` integration state** — detects stale paths, malformed config entries, and missing executables; shown in `doctor` output with human-readable detail
+- **CodeQL workflow** (`.github/workflows/codeql.yml`) — JavaScript/TypeScript analysis on push and PR; resolves code scanning branch protection gate
+- **`ASSISTANT_INTEGRATIONS.md`** — architecture doc covering the adapter interface, capability model, dependency boundary, and how to add new integrations
+
+### Changed
+- `TOOL_DESCRIPTION` in `server.ts` rewritten to be assistant-agnostic; leads with "PlanUI adds structured review workflows to AI coding agents"; includes activation phrases for natural-language invocation
+- `setup.ts` refactored to orchestration-only; all assistant-specific logic delegated to adapters
+- `src/template/planui.md` updated with multi-assistant activation phrases and `action:` field in planresponse examples
+- `package.json` description updated to reflect multi-assistant positioning; added `codex`, `multi-assistant`, `ai-review`, `human-in-the-loop` keywords
+- `.claude-plugin/plugin.json` version bumped to 0.3.1 with updated description
+
+### Fixed
+- v0.3.1 is the first synchronized multi-assistant release published consistently across GitHub and npm (npm previously lagged at v0.1.0)
+
 ## [0.3.0] - 2026-05-24
 
 ### Added
