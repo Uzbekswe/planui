@@ -64,6 +64,11 @@
   }
 
   // ── Gear menu (theme/font/color) ──────────────────────────────────
+  function resolveTheme(pref) {
+    if (pref !== "system") return pref;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+
   function initGear() {
     const btn = document.getElementById("gear-btn");
     const menu = document.getElementById("gear-menu");
@@ -76,22 +81,38 @@
     document.addEventListener("click", function () { menu.classList.remove("open"); });
 
     function applyPref(attr, val) {
-      document.documentElement.setAttribute("data-" + attr, val);
+      const resolved = attr === "theme" ? resolveTheme(val) : val;
+      document.documentElement.setAttribute("data-" + attr, resolved);
       try { localStorage.setItem("planui-pref-" + attr, val); } catch {}
     }
 
-    // Restore saved prefs
+    // Restore saved prefs; default theme to system preference if never set
     ["theme", "font", "color"].forEach(function (attr) {
       const saved = (function () {
         try { return localStorage.getItem("planui-pref-" + attr); } catch { return null; }
       })();
       const defaultVal = document.documentElement.getAttribute("data-" + attr);
       const sel = document.getElementById("gear-" + attr);
-      if (saved) { applyPref(attr, saved); if (sel) sel.value = saved; }
-      else if (defaultVal && sel) sel.value = defaultVal;
+      if (saved) {
+        applyPref(attr, saved);
+        if (sel) sel.value = saved;
+      } else if (attr === "theme") {
+        applyPref("theme", "system");
+        if (sel) sel.value = "system";
+      } else if (defaultVal && sel) {
+        sel.value = defaultVal;
+      }
       if (sel) {
         sel.addEventListener("change", function () { applyPref(attr, sel.value); });
       }
+    });
+
+    // Re-apply when OS colour scheme changes (only matters if "system" is selected)
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () {
+      try {
+        const saved = localStorage.getItem("planui-pref-theme") || "system";
+        if (saved === "system") applyPref("theme", "system");
+      } catch {}
     });
   }
 
@@ -201,44 +222,83 @@
     document.querySelectorAll(".question-card").forEach(function (card) {
       const qid = card.getAttribute("data-qid");
       if (!qid) return;
-      const ta = card.querySelector("textarea");
-      if (!ta) return;
-      if (state.questions[qid]) {
-        ta.value = state.questions[qid];
-        ta.classList.add("answered");
+
+      const ta        = card.querySelector("textarea");
+      const chipGroup = card.querySelector(".chip-group");
+
+      if (ta) {
+        if (state.questions[qid]) {
+          ta.value = state.questions[qid];
+          ta.classList.add("answered");
+        }
+        ta.addEventListener("input", function () {
+          state.questions[qid] = ta.value;
+          saveState(state);
+          ta.classList.toggle("answered", !!ta.value);
+          updateApproveGating();
+        });
+      } else if (chipGroup) {
+        // Restore saved chip selection
+        if (state.questions[qid]) {
+          const inputs = chipGroup.querySelectorAll("input[type=radio]");
+          inputs.forEach(function (inp) {
+            if (inp.value === state.questions[qid]) inp.checked = true;
+          });
+        }
+        chipGroup.addEventListener("change", function (e) {
+          const radio = e.target;
+          if (radio && radio.type === "radio") {
+            state.questions[qid] = radio.value;
+            saveState(state);
+            updateApproveGating();
+          }
+        });
       }
-      ta.addEventListener("input", function () {
-        state.questions[qid] = ta.value;
-        saveState(state);
-        ta.classList.toggle("answered", !!ta.value);
-        updateApproveGating();
-      });
     });
   }
 
   // ── Approve gating ────────────────────────────────────────────────
   function updateApproveGating() {
     const approveBtn = document.getElementById("approve-btn");
+    const warning    = document.getElementById("questions-warning");
     if (!approveBtn) return;
     const qCards = document.querySelectorAll(".question-card");
-    const allAnswered = Array.from(qCards).every(function (card) {
+    const unanswered = Array.from(qCards).filter(function (card) {
       const qid = card.getAttribute("data-qid");
-      return qid && state.questions[qid] && state.questions[qid].trim();
-    });
+      return !(qid && state.questions[qid] && state.questions[qid].trim());
+    }).length;
+    const allAnswered = unanswered === 0;
     approveBtn.disabled = !allAnswered;
     approveBtn.title = allAnswered ? "" : "Answer all open questions before approving";
+    if (warning) {
+      if (unanswered > 0 && qCards.length > 0) {
+        warning.textContent = unanswered + " unanswered question" + (unanswered !== 1 ? "s" : "");
+        warning.style.display = "inline-block";
+      } else {
+        warning.style.display = "none";
+      }
+    }
   }
 
-  // ── Bar status ────────────────────────────────────────────────────
+  // ── Bar status + progress ─────────────────────────────────────────
   function updateBarStatus() {
-    const el = document.getElementById("bar-status");
-    if (!el) return;
+    const el   = document.getElementById("bar-status");
+    const fill = document.getElementById("progress-fill");
     const stepCards = document.querySelectorAll(".step-card");
-    if (!stepCards.length) { el.textContent = ""; return; }
+    if (!stepCards.length) {
+      if (el) el.textContent = "";
+      if (fill) fill.style.width = "0%";
+      return;
+    }
+    const resolved = Array.from(stepCards).filter(function (c) {
+      const s = state.steps[c.getAttribute("data-step-id")];
+      return s === "approved" || s === "struck";
+    }).length;
     const approved = Array.from(stepCards).filter(function (c) {
       return state.steps[c.getAttribute("data-step-id")] === "approved";
     }).length;
-    el.textContent = approved + " / " + stepCards.length + " steps approved";
+    if (el) el.textContent = approved + " / " + stepCards.length + " steps approved";
+    if (fill) fill.style.width = (resolved / stepCards.length * 100) + "%";
   }
 
   // ── Copy feedback ─────────────────────────────────────────────────
@@ -374,6 +434,42 @@
     }
   }
 
+  // ── Theme toggle button ───────────────────────────────────────────
+  var SVG_SUN  = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  var SVG_MOON = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
+  function initThemeToggle() {
+    const btn = document.getElementById("theme-toggle");
+    if (!btn) return;
+
+    function currentTheme() {
+      return document.documentElement.getAttribute("data-theme") || "dark";
+    }
+
+    function updateBtn() {
+      const isLight = currentTheme() === "light";
+      btn.innerHTML = isLight ? SVG_MOON : SVG_SUN;
+      btn.setAttribute("aria-label", isLight ? "Switch to dark mode" : "Switch to light mode");
+      btn.title = isLight ? "Switch to dark mode" : "Switch to light mode";
+    }
+
+    btn.addEventListener("click", function () {
+      const next = currentTheme() === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("planui-pref-theme", next); } catch {}
+      const sel = document.getElementById("gear-theme");
+      if (sel) sel.value = next;
+      updateBtn();
+    });
+
+    new MutationObserver(updateBtn).observe(
+      document.documentElement,
+      { attributes: true, attributeFilter: ["data-theme"] }
+    );
+
+    updateBtn();
+  }
+
   // ── Keyboard shortcuts ────────────────────────────────────────────
   function initKeyboard() {
     const cards = Array.from(document.querySelectorAll(".step-card"));
@@ -407,9 +503,10 @@
     script.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
     script.onload = function () {
       if (window.mermaid) {
+        const isDark = document.documentElement.getAttribute("data-theme") !== "light";
         window.mermaid.initialize({
           startOnLoad: false,
-          theme: "dark",
+          theme: isDark ? "dark" : "default",
           securityLevel: "loose",
         });
         window.mermaid.run();
@@ -449,6 +546,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     buildSidebar();
     initGear();
+    initThemeToggle();
     initStepCards();
     initQuestions();
     updateApproveGating();

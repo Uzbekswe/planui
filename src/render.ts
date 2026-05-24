@@ -61,9 +61,9 @@ function renderSection(sec: PlanSection): string {
     <div class="step-num">${step.index}</div>
     <div class="step-title">${escapeHtml(step.title)}${depBadge}</div>
     <div class="step-actions">
-      <button class="step-btn approve" title="Approve this step (a)">✓</button>
-      <button class="step-btn strike" title="Strike this step (s)">~~</button>
-      <button class="step-btn comment" title="Add comment (c)">✎</button>
+      <button class="step-btn approve" title="Approve this step (a)" aria-label="Approve step ${step.index}">✓</button>
+      <button class="step-btn strike" title="Strike this step (s)" aria-label="Strike step ${step.index}">~~</button>
+      <button class="step-btn comment" title="Add comment (c)" aria-label="Comment on step ${step.index}">✎</button>
     </div>
   </div>
   ${bodyHtml}
@@ -87,8 +87,7 @@ function renderSection(sec: PlanSection): string {
       const qItems = sec.questions.map((q) => `
 <div class="question-card" data-qid="${escapeHtml(q.id)}">
   <div class="question-text">${escapeHtml(q.text)}</div>
-  ${q.bodyMarkdown.trim() ? `<div class="prose-card" style="margin-bottom:8px;font-size:.85rem;">${renderMd(q.bodyMarkdown)}</div>` : ""}
-  <textarea placeholder="Your answer…" rows="2"></textarea>
+  ${renderQuestionInput(q)}
 </div>`).join("\n");
       return `
 <section class="section" id="${id}" data-kind="questions">
@@ -144,10 +143,36 @@ function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 }
 
+function parseChoices(markdown: string): string[] {
+  return markdown
+    .split("\n")
+    .map(l => l.replace(/^\s*(?:[a-z]\)|[-*+•])\s+/i, "").trim())
+    .filter(Boolean);
+}
+
+function renderQuestionInput(q: import("./ir.js").PlanQuestion): string {
+  const choices = parseChoices(q.bodyMarkdown);
+  if (choices.length >= 2) {
+    const chips = choices.map(c =>
+      `<label class="chip"><input type="radio" name="q-${escapeHtml(q.id)}" value="${escapeHtml(c)}" hidden>${escapeHtml(c)}</label>`
+    ).join("");
+    return `<div class="chip-group" role="group" aria-label="Options for: ${escapeHtml(q.text)}">${chips}</div>`;
+  }
+  const body = q.bodyMarkdown.trim()
+    ? `<div class="prose-card" style="margin-bottom:8px;font-size:.85rem;">${renderMd(q.bodyMarkdown)}</div>`
+    : "";
+  return `${body}<textarea placeholder="Your answer…" rows="2"></textarea>`;
+}
+
+function sanitizeSentinels(html: string): string {
+  // Prevent {{SENTINEL}} patterns in plan content from being treated as template tokens
+  return html.replace(/\{\{/g, "&#123;&#123;");
+}
+
 export async function renderToHtml(doc: PlanDocument): Promise<string> {
   const { html: tmpl, css, js } = await readTemplate();
 
-  const sectionsHtml = doc.sections.map(renderSection).join("\n");
+  const sectionsHtml = sanitizeSentinels(doc.sections.map(renderSection).join("\n"));
 
   const statusSection = doc.sections.find((s) => s.kind === "status");
   const statusBadge = statusSection?.statusText
@@ -160,7 +185,7 @@ export async function renderToHtml(doc: PlanDocument): Promise<string> {
   });
 
   return tmpl
-    .replace("{{TITLE}}", escapeHtml(doc.title))
+    .replaceAll("{{TITLE}}", escapeHtml(doc.title))
     .replace("{{STYLES}}", css)
     .replace("{{STATUS_BADGE}}", statusBadge)
     .replace("{{TOOL_VERSION}}", escapeHtml(doc.toolVersion))
