@@ -184,14 +184,16 @@ export async function renderToHtml(doc: PlanDocument): Promise<string> {
     hour: "2-digit", minute: "2-digit",
   });
 
+  // {{PLAN_JSON}} must be LAST: rawMarkdown may contain sentinel patterns like
+  // {{ACTIONS_JS}} which would be consumed before the real replacement runs.
   return tmpl
     .replaceAll("{{TITLE}}", escapeHtml(doc.title))
     .replace("{{STYLES}}", css)
+    .replace("{{ACTIONS_JS}}", js)
     .replace("{{STATUS_BADGE}}", statusBadge)
     .replace("{{TOOL_VERSION}}", escapeHtml(doc.toolVersion))
     .replace("{{SECTIONS_HTML}}", sectionsHtml)
     .replace("{{RENDERED_AT}}", escapeHtml(renderedDate))
     .replace("{{PLAN_ID}}", escapeHtml(doc.planId))
-    .replace("{{PLAN_JSON}}", JSON.stringify(doc))
-    .replace("{{ACTIONS_JS}}", js);
+    .replace("{{PLAN_JSON}}", JSON.stringify(doc));
 }
