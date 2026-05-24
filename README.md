@@ -2,11 +2,64 @@
 
 Interactive browser-based UI for Claude Code plan mode. When Claude generates a plan, `planui` opens it as a rich HTML page where you can annotate steps, answer open questions, and copy structured feedback back to Claude — all in one click.
 
-```bash
-npx -y @uzbekswe/planui@latest setup
+**Current stable release: [v0.1.0](https://github.com/Uzbekswe/planui/tree/v0.1.0)**
+
+---
+
+## Install (inspect first, then run)
+
+This tool modifies your `~/.claude.json` and installs a local MCP server. You should read the code before running it. Here's the recommended flow:
+
+**Step 1 — Read the source at the exact version tag:**
+
+```
+https://github.com/Uzbekswe/planui/tree/v0.1.0
 ```
 
-Then restart Claude Code and use `/planui <task>` in any session.
+Key files to review:
+- [`src/setup.ts`](https://github.com/Uzbekswe/planui/blob/v0.1.0/src/setup.ts) — what `setup` writes to your `~/.claude.json`
+- [`src/server.ts`](https://github.com/Uzbekswe/planui/blob/v0.1.0/src/server.ts) — the MCP server (stdio only, no network ports)
+- [`src/render.ts`](https://github.com/Uzbekswe/planui/blob/v0.1.0/src/render.ts) — writes HTML files to `~/.claude/planui-archive/` only
+
+**Step 2 — Install the specific version you inspected:**
+
+```bash
+npx -y @uzbekswe/planui@0.1.0 setup
+```
+
+> **Why pin the version?** Running `@latest` means you execute whatever was most recently published — without reviewing it. Pinning to `@0.1.0` means the code you inspected above is exactly what runs.
+
+**Step 3 — Restart Claude Code**, then use `/planui <task>` in any session.
+
+---
+
+## Upgrading
+
+When a new version is released, the same inspect-first flow applies:
+
+```bash
+# 1. Check what's new
+#    https://github.com/Uzbekswe/planui/blob/main/CHANGELOG.md
+
+# 2. Read the diff between your installed version and the new one
+#    https://github.com/Uzbekswe/planui/compare/v0.1.0...v0.2.0
+
+# 3. Install the new version you've reviewed
+npm install -g @uzbekswe/planui@0.2.0
+
+# 4. Update the pinned MCP path and slash command
+planui upgrade
+
+# 5. Restart Claude Code
+```
+
+`planui check-update` will tell you when a newer version exists:
+
+```bash
+planui check-update
+# → Update available: 0.1.0 → 0.2.0
+#   Run: npm install -g @uzbekswe/planui@0.2.0 && planui upgrade
+```
 
 ---
 
@@ -25,23 +78,12 @@ Instead of reading a wall of markdown in the terminal, you get:
 
 ---
 
-## Install
+## What it does NOT do
 
-```bash
-# Install globally
-npm install -g @uzbekswe/planui@latest
-
-# Register the MCP server and /planui slash command
-planui setup
-
-# Restart Claude Code, then use /planui in any session
-```
-
-Or skip the global install and run directly:
-
-```bash
-npx -y @uzbekswe/planui@latest setup
-```
+- No network calls except Mermaid CDN (only on plans with diagrams; raw fallback if offline)
+- No daemons, no open ports — MCP server uses stdio only (spawned by Claude Code, not always running)
+- No telemetry
+- No auto-updates — the MCP entry in `~/.claude.json` points to a specific absolute path and never changes unless you run `planui upgrade`
 
 ---
 
@@ -60,20 +102,6 @@ Claude explores your codebase, writes a structured plan, and calls `render_plan`
 ```bash
 planui render path/to/plan.md
 planui render path/to/plan.md "My Plan Title"
-```
-
-### Check for updates
-
-```bash
-planui check-update
-```
-
-### Upgrade after installing a new version
-
-```bash
-npm install -g @uzbekswe/planui@latest
-planui upgrade
-# Restart Claude Code
 ```
 
 ### Uninstall
@@ -120,18 +148,41 @@ Use these H2 headers in the plan (all optional):
 
 ---
 
+## Security model
+
+`planui setup` does exactly three things:
+
+1. Adds one entry to `~/.claude.json` under `mcpServers.planui`:
+   ```json
+   {
+     "type": "stdio",
+     "command": "/absolute/path/to/node",
+     "args": ["/absolute/path/to/dist/server.js"]
+   }
+   ```
+   The path is the exact file on your disk from the version you installed. It never changes to `npx @latest`.
+
+2. Copies `dist/template/planui.md` to `~/.claude/commands/planui.md` (the `/planui` slash command).
+
+3. Renders a welcome plan to `~/.claude/planui-archive/` and opens it in your browser.
+
+Nothing else. No background processes, no cron jobs, no shell profile changes.
+
+---
+
 ## Why this instead of alternatives
 
 | | `@uzbekswe/planui` | `@prathamux/planui` |
 |---|---|---|
+| Install command | Pinned version (`@0.1.0`) — inspect before running | `@latest` — executes whatever is newest |
 | MCP registration | Absolute pinned path — frozen until `upgrade` | `npx @latest` — re-fetches every restart |
 | Version visibility | Badge on every plan + `planui version` | None |
-| Update control | Explicit `planui upgrade` | Silent auto-update |
+| Update control | Explicit `planui upgrade` after reviewing the diff | Silent auto-update |
 | Plan archive | Timestamped HTML files in `~/.claude/planui-archive/` | None |
 | Feedback UX | "Copy Feedback" button → structured markdown | Clipboard response grammar |
 | Plugin marketplace | `.claude-plugin/plugin.json` | None |
 | CHANGELOG | From v0.1.0 | None |
-| Source | [github.com/Uzbekswe/planui](https://github.com/Uzbekswe/planui) | No public repo history |
+| Source history | Full git history, tagged releases | No public repo |
 
 ---
 
