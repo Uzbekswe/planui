@@ -82,7 +82,7 @@ export function asyncUpdateBanner(): void {
     .then(({ hasUpdate, latest, current }) => {
       if (hasUpdate) {
         process.stderr.write(
-          `\n  planui update available: ${current} → ${latest}\n  Run: npm install -g @uzbekswe/planui@latest && planui upgrade\n\n`
+          `\n  planui update available: ${current} → ${latest}\n  Review: https://github.com/Uzbekswe/planui/compare/v${current}...v${latest}\n  Run: npm install -g @uzbekswe/planui@${latest} && planui upgrade\n\n`
         );
       }
     })

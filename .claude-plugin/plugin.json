@@ -8,5 +8,5 @@
   },
   "homepage": "https://github.com/Uzbekswe/planui",
   "category": "productivity",
-  "installInstructions": "Run: npx -y @uzbekswe/planui@latest setup\nThen restart Claude Code and use /planui <task> in any session."
+  "installInstructions": "1. Review source at the latest release tag:\n   https://github.com/Uzbekswe/planui/releases\n2. Install the version you reviewed (replace X.Y.Z):\n   npx -y @uzbekswe/planui@X.Y.Z setup\n3. Restart Claude Code, then use /planui <task> in any session."
 }

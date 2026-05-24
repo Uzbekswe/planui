@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-24
+
+### Fixed
+- `@latest` references replaced with specific version numbers in all CLI output (`planui check-update`, `planui --help`, update banner) — consistent with the inspect-before-install security model documented in the README
+- `plugin.json` `installInstructions` now directs users to review the release tag before installing, instead of using `@latest`
+- `## Files`, `## Stack Changes`, and `## Preconditions` rail items now render inline markdown — backtick-wrapped paths (e.g. `` `src/server.ts` ``) appear as `<code>` chips instead of literal text with backticks
+- README "What it does NOT do" now accurately documents both external network calls (Mermaid CDN and npm registry version check, cached 24 h)
+
+### Added
+- README "What it does" now lists Export annotated HTML, Sidebar TOC with scroll-spy, and LocalStorage annotation persistence (these features shipped in v0.1.0 but were not documented in the README)
+- `planui check-update` and update banner now include a diff URL (`github.com/compare/vOLD...vNEW`) alongside the install command
+
 ## [0.1.0] - 2026-05-24
 
 ### Added
@@ -31,5 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow: auto-publish to npm on `v*.*.*` tag push
 - MIT License
 
-[Unreleased]: https://github.com/Uzbekswe/planui/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Uzbekswe/planui/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Uzbekswe/planui/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Uzbekswe/planui/releases/tag/v0.1.0

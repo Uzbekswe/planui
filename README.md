@@ -2,7 +2,7 @@
 
 Interactive browser-based UI for Claude Code plan mode. When Claude generates a plan, `planui` opens it as a rich HTML page where you can annotate steps, answer open questions, and copy structured feedback back to Claude — all in one click.
 
-**Current stable release: [v0.1.0](https://github.com/Uzbekswe/planui/tree/v0.1.0)**
+**Current stable release: [v0.2.0](https://github.com/Uzbekswe/planui/tree/v0.2.0)**
 
 ---
 
@@ -13,18 +13,18 @@ This tool modifies your `~/.claude.json` and installs a local MCP server. You sh
 **Step 1 — Read the source at the exact version tag:**
 
 ```
-https://github.com/Uzbekswe/planui/tree/v0.1.0
+https://github.com/Uzbekswe/planui/tree/v0.2.0
 ```
 
 Key files to review:
-- [`src/setup.ts`](https://github.com/Uzbekswe/planui/blob/v0.1.0/src/setup.ts) — what `setup` writes to your `~/.claude.json`
-- [`src/server.ts`](https://github.com/Uzbekswe/planui/blob/v0.1.0/src/server.ts) — the MCP server (stdio only, no network ports)
-- [`src/render.ts`](https://github.com/Uzbekswe/planui/blob/v0.1.0/src/render.ts) — writes HTML files to `~/.claude/planui-archive/` only
+- [`src/setup.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/setup.ts) — what `setup` writes to your `~/.claude.json`
+- [`src/server.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/server.ts) — the MCP server (stdio only, no network ports)
+- [`src/render.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/render.ts) — writes HTML files to `~/.claude/planui-archive/` only
 
 **Step 2 — Install the specific version you inspected:**
 
 ```bash
-npx -y @uzbekswe/planui@0.1.0 setup
+npx -y @uzbekswe/planui@0.2.0 setup
 ```
 
 > **Why pin the version?** Running `@latest` means you execute whatever was most recently published — without reviewing it. Pinning to `@0.1.0` means the code you inspected above is exactly what runs.
@@ -42,10 +42,10 @@ When a new version is released, the same inspect-first flow applies:
 #    https://github.com/Uzbekswe/planui/blob/main/CHANGELOG.md
 
 # 2. Read the diff between your installed version and the new one
-#    https://github.com/Uzbekswe/planui/compare/v0.1.0...v0.2.0
+#    https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
 
 # 3. Install the new version you've reviewed
-npm install -g @uzbekswe/planui@0.2.0
+npm install -g @uzbekswe/planui@0.3.0
 
 # 4. Update the pinned MCP path and slash command
 planui upgrade
@@ -57,8 +57,9 @@ planui upgrade
 
 ```bash
 planui check-update
-# → Update available: 0.1.0 → 0.2.0
-#   Run: npm install -g @uzbekswe/planui@0.2.0 && planui upgrade
+# → Update available: 0.2.0 → 0.3.0
+#   Review diff: https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
+#   Run: npm install -g @uzbekswe/planui@0.3.0 && planui upgrade
 ```
 
 ---
@@ -70,6 +71,9 @@ Instead of reading a wall of markdown in the terminal, you get:
 - **Annotatable step cards** — approve (✓), strike (~~), or comment on each step
 - **Open Questions** — inline answer fields; Approve is gated until all are answered
 - **Copy Feedback button** — assembles all annotations into a structured `planresponse` block for pasting back to Claude
+- **Export annotated HTML** — download a self-contained snapshot with all annotations baked in
+- **Sidebar TOC with scroll-spy** — click any step heading to jump to it; active section highlights as you scroll
+- **LocalStorage persistence** — annotation state (approvals, strikes, comments, answers) survives page refreshes per plan ID
 - **Plan archive** — every rendered plan saved to `~/.claude/planui-archive/` with an ISO timestamp filename
 - **Version badge** — every plan shows which version rendered it, links to this CHANGELOG
 - **Themes** — dark / midnight / light, with font and accent colour selector
@@ -80,7 +84,9 @@ Instead of reading a wall of markdown in the terminal, you get:
 
 ## What it does NOT do
 
-- No network calls except Mermaid CDN (only on plans with diagrams; raw fallback if offline)
+- Two external network calls only:
+  - **Mermaid CDN** — only on plans that contain diagrams; raw source fallback if offline
+  - **npm registry** (`registry.npmjs.org/@uzbekswe/planui/latest`) — version check after each render, cached 24 h (at most one call per day)
 - No daemons, no open ports — MCP server uses stdio only (spawned by Claude Code, not always running)
 - No telemetry
 - No auto-updates — the MCP entry in `~/.claude.json` points to a specific absolute path and never changes unless you run `planui upgrade`

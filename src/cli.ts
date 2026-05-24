@@ -23,8 +23,9 @@ Usage:
 
 After setup, restart Claude Code and use /planui <task> in any session.
 
-Share with others:
-  npx -y @uzbekswe/planui@latest setup
+Share with others (inspect first):
+  https://github.com/Uzbekswe/planui/tree/v${TOOL_VERSION}
+  npx -y @uzbekswe/planui@${TOOL_VERSION} setup
 `.trim());
 }
 
@@ -59,7 +60,8 @@ async function runCheckUpdate(): Promise<void> {
     const { current, latest, hasUpdate } = await checkForUpdate();
     if (hasUpdate) {
       console.log(`  Update available: ${current} → ${latest}`);
-      console.log(`  Run: npm install -g @uzbekswe/planui@latest && planui upgrade`);
+      console.log(`  Review diff: https://github.com/Uzbekswe/planui/compare/v${current}...v${latest}`);
+      console.log(`  Run: npm install -g @uzbekswe/planui@${latest} && planui upgrade`);
     } else {
       console.log(`  Up to date: @uzbekswe/planui@${current}`);
     }

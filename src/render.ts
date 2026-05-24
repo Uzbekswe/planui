@@ -26,6 +26,10 @@ function renderMd(markdown: string): string {
   return marked.parse(markdown, { async: false }) as string;
 }
 
+function renderMdInline(text: string): string {
+  return marked.parseInline(text, { async: false }) as string;
+}
+
 function renderSection(sec: PlanSection): string {
   const id = `section-${sec.kind === "note" ? slugify(sec.heading) : sec.kind}`;
   const headingHtml = `<div class="section-heading">${escapeHtml(sec.heading || sec.kind)}</div>`;
@@ -117,7 +121,7 @@ function renderSection(sec: PlanSection): string {
         .split("\n")
         .map((l) => l.replace(/^\s*[-*+]\s+/, "").trim())
         .filter(Boolean)
-        .map((text) => `<div class="rail-item"><span>${escapeHtml(text)}</span></div>`)
+        .map((text) => `<div class="rail-item"><span>${renderMdInline(text)}</span></div>`)
         .join("\n");
       return `
 <section class="section" id="${id}" data-kind="${sec.kind}">

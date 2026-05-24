@@ -1,6 +1,6 @@
 {
   "name": "@uzbekswe/planui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Interactive browser-based UI for Claude Code plan mode — annotate, approve, and copy structured feedback on AI-generated plans.",
   "license": "MIT",
   "author": {

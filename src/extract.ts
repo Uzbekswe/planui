@@ -9,7 +9,7 @@ import type {
 
 // Injected by tsc via tsconfig paths or replaced at build time.
 // Falls back to package version at runtime via require('../package.json').
-let _toolVersion = "0.1.0";
+let _toolVersion = "0.2.0";
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   _toolVersion = require("../package.json").version as string;
