@@ -61,6 +61,15 @@ export interface UpdateCheckResult {
   hasUpdate: boolean;
 }
 
+function semverGt(a: string, b: string): boolean {
+  const parse = (v: string) => v.replace(/^v/, "").split(".").map(Number);
+  const [aMaj, aMin, aPat] = parse(a);
+  const [bMaj, bMin, bPat] = parse(b);
+  if (aMaj !== bMaj) return aMaj > bMaj;
+  if (aMin !== bMin) return aMin > bMin;
+  return aPat > bPat;
+}
+
 export async function checkForUpdate(): Promise<UpdateCheckResult> {
   const current = TOOL_VERSION;
   let latest: string;
@@ -73,7 +82,8 @@ export async function checkForUpdate(): Promise<UpdateCheckResult> {
     await writeCache(latest);
   }
 
-  return { current, latest, hasUpdate: latest !== current };
+  // Only report an update when the registry version is strictly newer
+  return { current, latest, hasUpdate: semverGt(latest, current) };
 }
 
 // Non-blocking update banner: logs to stderr if update available, then resolves.
