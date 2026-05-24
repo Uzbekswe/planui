@@ -6,148 +6,229 @@
 [![License: MIT](https://img.shields.io/npm/l/@uzbekswe/planui)](https://github.com/Uzbekswe/planui/blob/main/LICENSE)
 [![Node.js >= 20](https://img.shields.io/node/v/@uzbekswe/planui)](https://nodejs.org)
 
-Interactive browser-based UI for Claude Code plan mode. When Claude generates a plan, `planui` opens it as a rich HTML page where you can annotate steps, answer open questions, and copy structured feedback back to Claude — all in one click.
+Turn Claude Code's plan mode into an interactive browser UI. Instead of reading a wall of markdown in the terminal, you get clickable step cards, inline answer fields for open questions, and a one-click **Copy Feedback** button that pastes a structured response straight back to Claude.
 
-**Current stable release: [v0.2.0](https://github.com/Uzbekswe/planui/tree/v0.2.0)**
+![planui demo — dark mode step cards with sidebar TOC](https://raw.githubusercontent.com/Uzbekswe/planui/main/docs/screenshot-dark.png)
 
 ---
 
-## Install (inspect first, then run)
+## Quick start (2 minutes)
 
-This tool modifies your `~/.claude.json` and installs a local MCP server. You should read the code before running it. Here's the recommended flow:
+### Prerequisites
 
-**Step 1 — Read the source at the exact version tag:**
+- **Node.js 20 or higher** — check with `node --version`
+- **Claude Code** — the CLI or desktop app ([install guide](https://docs.anthropic.com/en/docs/claude-code))
 
-```
-https://github.com/Uzbekswe/planui/tree/v0.2.0
-```
+### Step 1 — Install
 
-Key files to review:
-- [`src/setup.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/setup.ts) — what `setup` writes to your `~/.claude.json`
-- [`src/server.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/server.ts) — the MCP server (stdio only, no network ports)
-- [`src/render.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/render.ts) — writes HTML files to `~/.claude/planui-archive/` only
-
-**Step 2 — Install the specific version you inspected:**
+Pick the latest stable version from the [releases page](https://github.com/Uzbekswe/planui/releases) and install it globally:
 
 ```bash
-npx -y @uzbekswe/planui@0.2.0 setup
+npm install -g @uzbekswe/planui@0.2.0
 ```
 
-> **Why pin the version?** Running `@latest` means you execute whatever was most recently published — without reviewing it. Pinning to `@0.1.0` means the code you inspected above is exactly what runs.
+> **Why pin the version?** `@latest` executes whatever is newest on the registry without review. Pinning to `@0.2.0` means you control exactly what runs on your machine. You can read the source at that tag before installing.
 
-**Step 3 — Restart Claude Code**, then use `/planui <task>` in any session.
-
----
-
-## Upgrading
-
-When a new version is released, the same inspect-first flow applies:
+### Step 2 — Run setup
 
 ```bash
-# 1. Check what's new
-#    https://github.com/Uzbekswe/planui/blob/main/CHANGELOG.md
-
-# 2. Read the diff between your installed version and the new one
-#    https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
-
-# 3. Install the new version you've reviewed
-npm install -g @uzbekswe/planui@0.3.0
-
-# 4. Update the pinned MCP path and slash command
-planui upgrade
-
-# 5. Restart Claude Code
+planui setup
 ```
 
-`planui check-update` will tell you when a newer version exists:
+This does three things and nothing else:
 
-```bash
-planui check-update
-# → Update available: 0.2.0 → 0.3.0
-#   Review diff: https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
-#   Run: npm install -g @uzbekswe/planui@0.3.0 && planui upgrade
-```
+1. Adds a `planui` entry to `~/.claude.json` pointing to the exact server file you just installed
+2. Copies the `/planui` slash command to `~/.claude/commands/planui.md`
+3. Opens a welcome plan in your browser so you can see it working
 
----
+### Step 3 — Restart Claude Code
 
-## What it does
+Close and reopen Claude Code (or reload the window). The `planui` MCP server will appear in `/mcp`.
 
-Instead of reading a wall of markdown in the terminal, you get:
+### Step 4 — Use it
 
-- **Annotatable step cards** — approve (✓), strike (~~), or comment on each step
-- **Open Questions** — inline answer fields; Approve is gated until all are answered
-- **Copy Feedback button** — assembles all annotations into a structured `planresponse` block for pasting back to Claude
-- **Export annotated HTML** — download a self-contained snapshot with all annotations baked in
-- **Sidebar TOC with scroll-spy** — click any step heading to jump to it; active section highlights as you scroll
-- **LocalStorage persistence** — annotation state (approvals, strikes, comments, answers) survives page refreshes per plan ID
-- **Plan archive** — every rendered plan saved to `~/.claude/planui-archive/` with an ISO timestamp filename
-- **Version badge** — every plan shows which version rendered it, links to this CHANGELOG
-- **Themes** — dark / midnight / light, with font and accent colour selector
-- **Mermaid diagrams** — loaded from CDN on demand, raw source fallback when offline
-- **Keyboard shortcuts** — `j`/`k` navigate steps, `a` approve, `s` strike, `c` comment
-
----
-
-## What it does NOT do
-
-- Two external network calls only:
-  - **Mermaid CDN** — only on plans that contain diagrams; raw source fallback if offline
-  - **npm registry** (`registry.npmjs.org/@uzbekswe/planui/latest`) — version check after each render, cached 24 h (at most one call per day)
-- No daemons, no open ports — MCP server uses stdio only (spawned by Claude Code, not always running)
-- No telemetry
-- No auto-updates — the MCP entry in `~/.claude.json` points to a specific absolute path and never changes unless you run `planui upgrade`
-
----
-
-## Usage
-
-In any Claude Code session:
+In any Claude Code session, type:
 
 ```
 /planui add idempotency to /v2/refresh
 ```
 
-Claude explores your codebase, writes a structured plan, and calls `render_plan`. A browser tab opens. You review, annotate, and click **Approve plan** or **Copy feedback**. Paste the `planresponse` block back — Claude proceeds or revises.
+Claude explores your codebase, writes a structured plan, and automatically opens it as an interactive HTML page in your browser. Annotate the steps, answer any open questions, then click **Approve plan** or **Copy feedback** to send your response back.
 
-### Render any plan markdown manually
+---
+
+## Verifying the install
+
+After setup, run these to confirm everything is wired up:
+
+```bash
+planui version        # → 0.2.0
+planui check-update   # → up to date (or shows if a new version exists)
+```
+
+To confirm the MCP server is registered with an absolute path (not `npx @latest`):
+
+```bash
+node -e "const c=require('fs').readFileSync(require('os').homedir()+'/.claude.json','utf8'); console.log(JSON.parse(c).mcpServers.planui)"
+# → { type: 'stdio', command: '/absolute/path/node', args: ['/absolute/path/server.js'] }
+```
+
+---
+
+## What you get
+
+### Interactive step cards
+
+Every step in the plan gets its own card with three action buttons:
+
+| Button | Shortcut | What it does |
+|--------|----------|--------------|
+| ✓ Approve | `a` | Marks the step green; counts toward the progress bar |
+| ~~ Strike | `s` | Marks the step for removal |
+| ✎ Comment | `c` | Opens an inline textarea to type feedback |
+
+Keyboard navigation: `j` / `↓` moves to the next step, `k` / `↑` moves to the previous one.
+
+### Open Questions with chip options
+
+If the plan includes an `## Open Questions` section, each question gets an inline answer field. Questions with multiple-choice options render as clickable chips instead of a free-text box. The **Approve plan** button is disabled until every question has an answer.
+
+### Copy Feedback button
+
+Assembles everything — question answers, struck steps, and inline comments — into a structured `planresponse` block. One click copies it to the clipboard. Paste it straight back into Claude.
+
+```
+```planresponse plan_abc123
+modify
+
+q1: Yes, add a migration for existing rows
+
+feedback:
+  Step 3 [remove]: We already handle this in the middleware
+  Step 7 [feedback]: Use the v2 API endpoint, not v1
+```
+```
+
+### Sticky sidebar TOC with scroll-spy
+
+A collapsible table of contents tracks your scroll position and highlights the current step. Click any entry to jump to it.
+
+### Progress bar
+
+A thin accent-coloured bar at the top of the header fills as you approve or strike steps — visual at-a-glance progress.
+
+### Theme switcher
+
+- **Dark** (default) — GitHub-style dark
+- **Midnight** — deeper black for OLED displays
+- **Light** — clean white
+- **System** — follows your OS preference automatically
+
+Toggle with the sun/moon button in the top bar, or choose from the ⚙ settings menu. Preference is saved to `localStorage` per browser.
+
+### Font and accent colour
+
+The ⚙ settings menu also lets you switch between Sans (Inter), Serif, and Mono fonts, and pick an accent colour (Blue, Green, Purple, White).
+
+### Plan archive
+
+Every rendered plan is saved to `~/.claude/planui-archive/YYYY-MM-DDTHH-mm-ss-<slug>.html` as a fully self-contained file. Open any past plan offline — no server needed.
+
+### Export annotated HTML
+
+The **Export annotated** button downloads a snapshot of the current page with all your annotations baked in. Share it with teammates or keep it as a record.
+
+### Version badge
+
+Every rendered plan shows `@uzbekswe/planui@<version>` in the header, linked to the CHANGELOG. You always know which version produced which plan.
+
+### Mermaid diagrams
+
+Plans containing ` ```mermaid ` blocks load the renderer from jsDelivr on demand. Falls back to raw source if you're offline.
+
+---
+
+## Manual render
+
+You can render any plan markdown file without Claude:
 
 ```bash
 planui render path/to/plan.md
 planui render path/to/plan.md "My Plan Title"
 ```
 
-### Uninstall
+Useful for rendering saved plans, sharing with teammates, or testing a new plan format.
+
+---
+
+## Upgrading
+
+```bash
+# 1. Check what changed
+#    https://github.com/Uzbekswe/planui/blob/main/CHANGELOG.md
+
+# 2. Install the new version
+npm install -g @uzbekswe/planui@0.3.0
+
+# 3. Update the pinned MCP path and slash command
+planui upgrade
+
+# 4. Restart Claude Code
+```
+
+`planui check-update` will remind you when a newer version is available:
+
+```
+Update available: 0.2.0 → 0.3.0
+Review: https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
+Run: npm install -g @uzbekswe/planui@0.3.0 && planui upgrade
+```
+
+---
+
+## Uninstalling
 
 ```bash
 planui uninstall
-# Your plan archive at ~/.claude/planui-archive/ is preserved
 ```
+
+Removes the MCP server entry from `~/.claude.json` and deletes the `/planui` slash command. Your plan archive at `~/.claude/planui-archive/` is left intact.
 
 ---
 
 ## Plan markdown schema
 
-Use these H2 headers in the plan (all optional):
+The tool parses standard H2 headings. All sections are optional — nothing is required.
 
-| Header | Renders as |
-|--------|-----------|
+| H2 heading | Renders as |
+|------------|-----------|
 | `## Summary` / `## Overview` / `## TL;DR` | Prose card |
-| `## Open Questions` / `## Questions` | Inline answer fields (gates Approve) |
+| `## Open Questions` / `## Questions` | Answer fields (bullet list = chip options; gates Approve) |
 | `## Steps` / `## Plan` / `## Implementation` | Numbered step cards with annotation buttons |
 | `## Risks` / `## Risk` | Risk cards with `[high]` / `[med]` / `[low]` severity badges |
-| `## Preconditions` / `## Requirements` | Rail card bullet list |
-| `## Files` / `## Files Touched` | Rail card bullet list |
-| `## Stack Changes` / `## Dependencies` | Rail card bullet list |
+| `## Preconditions` / `## Requirements` | Inline code chip list |
+| `## Files` / `## Files Touched` | Inline code chip list |
+| `## Stack Changes` / `## Dependencies` | Inline code chip list |
 | `## Status` | Single line shown as a badge in the header |
-| Any other H2 | Note card (nothing is lost) |
+| Any other H2 | Note card — nothing is lost |
 
-### Steps
+### Steps with dependencies
 
 ```markdown
 ## Steps
 1. **Guard duplicate calls** — add idempotency check at entry. `src/auth/refresh.ts`
-2. **Update integration tests** (depends on 1) — replace mock with real fixture. `tests/auth.test.ts`
+2. **Update integration tests** (depends on 1) — replace mock with real fixture.
 3. **Deploy and monitor** (depends on 2) — flag-gate; watch 4xx rate for 1h.
+```
+
+### Open questions with chip options
+
+```markdown
+## Open Questions
+1. Should we backfill existing rows?
+   - Yes, run a migration now
+   - No, new rows only
+   - Defer to next sprint
 ```
 
 ### Risks
@@ -160,25 +241,43 @@ Use these H2 headers in the plan (all optional):
 
 ---
 
+## Network calls
+
+Only two, both opt-in:
+
+| Call | When | Purpose |
+|------|------|---------|
+| `cdn.jsdelivr.net/npm/mermaid@10` | Plans with Mermaid blocks | Renders diagrams; falls back to raw source offline |
+| `registry.npmjs.org/@uzbekswe/planui/latest` | Once per render, cached 24 h | Version check; result displayed as a banner, never acted on automatically |
+
+No telemetry. No daemons. No open ports. The MCP server is stdio-only, spawned by Claude Code when needed and not otherwise running.
+
+---
+
 ## Security model
 
-`planui setup` does exactly three things:
+`planui setup` does exactly these things:
 
-1. Adds one entry to `~/.claude.json` under `mcpServers.planui`:
+1. **Writes to `~/.claude.json`** — one `mcpServers.planui` entry pointing to an absolute file path:
    ```json
    {
      "type": "stdio",
      "command": "/absolute/path/to/node",
-     "args": ["/absolute/path/to/dist/server.js"]
+     "args": ["/absolute/path/to/@uzbekswe/planui/dist/server.js"]
    }
    ```
-   The path is the exact file on your disk from the version you installed. It never changes to `npx @latest`.
+   The path is frozen to the version you installed. It does not change to `npx @latest` on restart.
 
-2. Copies `dist/template/planui.md` to `~/.claude/commands/planui.md` (the `/planui` slash command).
+2. **Creates `~/.claude/commands/planui.md`** — the `/planui` slash command.
 
-3. Renders a welcome plan to `~/.claude/planui-archive/` and opens it in your browser.
+3. **Renders a welcome plan** — opens one HTML file in your browser.
 
-Nothing else. No background processes, no cron jobs, no shell profile changes.
+Nothing else. No shell profile changes, no cron jobs, no background services.
+
+To review the source before running:
+- [`src/setup.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/setup.ts) — what setup writes
+- [`src/server.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/server.ts) — the MCP server (stdio only, no ports)
+- [`src/render.ts`](https://github.com/Uzbekswe/planui/blob/v0.2.0/src/render.ts) — writes HTML to `~/.claude/planui-archive/` only
 
 ---
 
@@ -186,14 +285,17 @@ Nothing else. No background processes, no cron jobs, no shell profile changes.
 
 | | `@uzbekswe/planui` | `@prathamux/planui` |
 |---|---|---|
-| Install command | Pinned version (`@0.1.0`) — inspect before running | `@latest` — executes whatever is newest |
-| MCP registration | Absolute pinned path — frozen until `upgrade` | `npx @latest` — re-fetches every restart |
-| Version visibility | Badge on every plan + `planui version` | None |
+| Install command | Pinned version — inspect before running | `@latest` — executes whatever is newest |
+| MCP registration | Absolute pinned path — frozen until `upgrade` | `npx @latest` — re-fetches every Claude restart |
+| Version visibility | Badge on every plan + `planui version` CLI | None |
 | Update control | Explicit `planui upgrade` after reviewing the diff | Silent auto-update |
-| Plan archive | Timestamped HTML files in `~/.claude/planui-archive/` | None |
-| Feedback UX | "Copy Feedback" button → structured markdown | Clipboard response grammar |
-| Plugin marketplace | `.claude-plugin/plugin.json` | None |
-| CHANGELOG | From v0.1.0 | None |
+| Plan archive | Timestamped HTML in `~/.claude/planui-archive/` | None |
+| Theme support | Dark / Midnight / Light / System | Dark only |
+| Feedback UX | "Copy Feedback" → structured `planresponse` block | Basic clipboard |
+| Progress tracking | Progress bar + step count in header | None |
+| Open questions | Chip options + gated Approve button | Text only |
+| Plugin marketplace | `.claude-plugin/plugin.json` entry | None |
+| CHANGELOG | From v0.1.0, kept-a-changelog format | None |
 | Source history | Full git history, tagged releases | No public repo |
 
 ---
