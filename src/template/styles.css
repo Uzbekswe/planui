@@ -78,8 +78,12 @@ body {
   display: flex; align-items: center; justify-content: center;
   color: var(--text2); transition: all .12s; flex-shrink: 0;
 }
-#theme-toggle:hover { color: var(--text); border-color: var(--text2); background: var(--bg3); }
+#theme-toggle:hover { color: var(--text); border-color: var(--accent); background: var(--bg3); }
 #theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* show sun in dark/midnight, moon in light — pure CSS, no JS required */
+[data-theme="dark"]     #theme-toggle .icon-moon,
+[data-theme="midnight"] #theme-toggle .icon-moon { display: none; }
+[data-theme="light"]    #theme-toggle .icon-sun  { display: none; }
 
 /* progress bar — bottom edge of header */
 #progress-rail {
