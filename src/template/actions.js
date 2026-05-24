@@ -9,11 +9,21 @@
   const PLAN_ID = planId;
   const STORAGE_KEY = "planui-state-" + planId;
 
+  // Increment when the persisted shape is incompatible with the current schema.
+  // Absent _v (Phase 1 initial release) is treated as v0 — still compatible.
+  const STATE_SCHEMA_VERSION = 1;
+
   function loadState() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (raw._v !== undefined && raw._v !== STATE_SCHEMA_VERSION) return {};
+      return raw;
+    } catch { return {}; }
   }
   function saveState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, _v: STATE_SCHEMA_VERSION }));
+    } catch {}
   }
   let state = loadState();
   if (!state.steps)      state.steps      = {};
@@ -41,6 +51,21 @@
         btn.classList.toggle("active", btn.getAttribute("data-val") === val);
       });
     }
+  }
+
+  // ── Review semantics (canonical source of truth) ─────────────────
+  // Step states:  "approved" | "struck" | "commenting" | ""
+  //
+  // RULE: Only "approved" and "struck" count as RESOLVED.
+  // A step in "commenting" state, or a step with only text in the comments
+  // field, remains UNRESOLVED — comments are advisory feedback only and
+  // do NOT satisfy approval gating.
+  //
+  // All review gating MUST go through isStepResolved() so this rule
+  // cannot be accidentally redefined in one place but not others.
+  function isStepResolved(id) {
+    const s = state.steps[id] || "";
+    return s === "approved" || s === "struck";
   }
 
   // ── Questions indicator ────────────────────────────────────────────
@@ -344,8 +369,7 @@
 
     const stepCards = Array.from(document.querySelectorAll(".step-card"));
     const unresolved = stepCards.filter(function (card) {
-      const s = state.steps[card.getAttribute("data-step-id")] || "";
-      return s !== "approved" && s !== "struck";
+      return !isStepResolved(card.getAttribute("data-step-id"));
     }).length;
 
     const approvable = unanswered === 0 && unresolved === 0;
@@ -420,8 +444,7 @@
         document.querySelectorAll(".step-card").forEach(function (card) {
           const id = card.getAttribute("data-step-id");
           if (!id) return;
-          const s = state.steps[id] || "";
-          if (s !== "approved" && s !== "struck") {
+          if (!isStepResolved(id)) {
             state.steps[id] = "approved";
             applyStepState(card, id);
           }
@@ -579,23 +602,32 @@
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────
+  // Centralised keymap — extend here to add or rebind shortcuts in Phase 2+.
+  const KEYMAP = {
+    navigate_down: ["j", "ArrowDown"],
+    navigate_up:   ["k", "ArrowUp"],
+    approve:       ["a"],
+    strike:        ["s"],
+    comment:       ["c"],
+  };
+
   function initKeyboard() {
     const cards = Array.from(document.querySelectorAll(".step-card"));
     let focus = -1;
 
     document.addEventListener("keydown", function (e) {
       if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
-      if (e.key === "j" || e.key === "ArrowDown") {
+      if (KEYMAP.navigate_down.includes(e.key)) {
         focus = Math.min(focus + 1, cards.length - 1);
         cards[focus] && cards[focus].scrollIntoView({ behavior: "smooth", block: "nearest" });
-      } else if (e.key === "k" || e.key === "ArrowUp") {
+      } else if (KEYMAP.navigate_up.includes(e.key)) {
         focus = Math.max(focus - 1, 0);
         cards[focus] && cards[focus].scrollIntoView({ behavior: "smooth", block: "nearest" });
       } else if (focus >= 0 && cards[focus]) {
         const card = cards[focus];
-        if (e.key === "a") { card.querySelector(".step-btn.approve") && card.querySelector(".step-btn.approve").click(); }
-        if (e.key === "s") { card.querySelector(".step-btn.strike")  && card.querySelector(".step-btn.strike").click(); }
-        if (e.key === "c") { card.querySelector(".step-btn.comment") && card.querySelector(".step-btn.comment").click(); }
+        if (KEYMAP.approve.includes(e.key))  { card.querySelector(".step-btn.approve") && card.querySelector(".step-btn.approve").click(); }
+        if (KEYMAP.strike.includes(e.key))   { card.querySelector(".step-btn.strike")  && card.querySelector(".step-btn.strike").click(); }
+        if (KEYMAP.comment.includes(e.key))  { card.querySelector(".step-btn.comment") && card.querySelector(".step-btn.comment").click(); }
       }
     });
   }

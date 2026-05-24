@@ -30,6 +30,22 @@ function renderMdInline(text: string): string {
   return marked.parseInline(text, { async: false }) as string;
 }
 
+function renderGroupedItems(rawLines: string[]): string {
+  const groups: Record<string, string[]> = {};
+  for (const f of rawLines) {
+    const slash = f.indexOf("/");
+    const dir = slash >= 0 ? f.slice(0, slash) : "(root)";
+    (groups[dir] ??= []).push(f);
+  }
+  return Object.entries(groups).map(([dir, files]) => `
+<details class="file-group" open>
+  <summary class="file-group-header">${escapeHtml(dir)}<span class="file-count">${files.length}</span></summary>
+  <div class="file-group-body">
+    ${files.map((f) => `<div class="rail-item"><span>${renderMdInline(f)}</span></div>`).join("\n    ")}
+  </div>
+</details>`).join("\n");
+}
+
 function sectionTypeBadge(kind: PlanSection["kind"]): string {
   const labels: Partial<Record<PlanSection["kind"], string>> = {
     questions: "Questions", steps: "Steps", risks: "Risks",
@@ -143,19 +159,7 @@ function renderSection(sec: PlanSection): string {
       if (!rawLines.length) {
         return `<section class="section" id="${id}" data-kind="files">${headingHtml}<div class="prose-card">${renderMd(sec.bodyMarkdown)}</div></section>`;
       }
-      const groups: Record<string, string[]> = {};
-      for (const f of rawLines) {
-        const slash = f.indexOf("/");
-        const dir = slash >= 0 ? f.slice(0, slash) : "(root)";
-        (groups[dir] ??= []).push(f);
-      }
-      const groupHtml = Object.entries(groups).map(([dir, files]) => `
-<details class="file-group" open>
-  <summary class="file-group-header">${escapeHtml(dir)}<span class="file-count">${files.length}</span></summary>
-  <div class="file-group-body">
-    ${files.map((f) => `<div class="rail-item"><span>${renderMdInline(f)}</span></div>`).join("\n    ")}
-  </div>
-</details>`).join("\n");
+      const groupHtml = renderGroupedItems(rawLines);
       return `
 <section class="section" id="${id}" data-kind="files">
   ${headingHtml}
@@ -171,19 +175,7 @@ function renderSection(sec: PlanSection): string {
         .filter(Boolean);
       // For stack, group by directory if any paths contain "/"
       if (sec.kind === "stack" && rawLines.some((l) => l.includes("/"))) {
-        const groups: Record<string, string[]> = {};
-        for (const f of rawLines) {
-          const slash = f.indexOf("/");
-          const dir = slash >= 0 ? f.slice(0, slash) : "(root)";
-          (groups[dir] ??= []).push(f);
-        }
-        const groupHtml = Object.entries(groups).map(([dir, files]) => `
-<details class="file-group" open>
-  <summary class="file-group-header">${escapeHtml(dir)}<span class="file-count">${files.length}</span></summary>
-  <div class="file-group-body">
-    ${files.map((f) => `<div class="rail-item"><span>${renderMdInline(f)}</span></div>`).join("\n    ")}
-  </div>
-</details>`).join("\n");
+        const groupHtml = renderGroupedItems(rawLines);
         return `
 <section class="section" id="${id}" data-kind="${sec.kind}">
   ${headingHtml}
