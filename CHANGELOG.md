@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0](https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0) (2026-05-24)
+
+
+### Features
+
+* light mode toggle, progress bar, chip questions, UX polish ([8a9de6c](https://github.com/Uzbekswe/planui/commit/8a9de6cb387e92cfc6824812c69b7db835a84919))
+* **v0.3.0:** Phase 1 UX — serious human-in-the-loop review system ([#7](https://github.com/Uzbekswe/planui/issues/7)) ([7d2ff22](https://github.com/Uzbekswe/planui/commit/7d2ff22c4d362eb4f93dc5d2fb9db24ab820c961))
+* **v0.3.1:** Phase 2 — multi-assistant ecosystem expansion ([#8](https://github.com/Uzbekswe/planui/issues/8)) ([80c1868](https://github.com/Uzbekswe/planui/commit/80c1868abe67a5dc38d7862ed98f1c42450f0fd0))
+
+
+### Bug Fixes
+
+* check-update reports downgrade as update (semver comparison bug) ([#12](https://github.com/Uzbekswe/planui/issues/12)) ([7e8dae3](https://github.com/Uzbekswe/planui/commit/7e8dae3340d436a02322220d895b9f75aff3cdad))
+* make theme toggle button visible on page load ([83e3f01](https://github.com/Uzbekswe/planui/commit/83e3f0108efc592b575eacecf4b650b9baa5f98f))
+* move {{PLAN_JSON}} replacement to last to prevent sentinel clobber ([d38d10d](https://github.com/Uzbekswe/planui/commit/d38d10d133c92e1657ac05b601419e5a3d6de4eb))
+
 ## [Unreleased]
 
 ## [0.3.1] - 2026-05-24

@@ -1,6 +1,6 @@
 {
   "name": "@uzbekswe/planui",
-  "version": "0.3.1",
+  "version": "0.3.0",
   "description": "Structured review workflows for AI coding agents — Claude Code, Codex CLI, and any MCP-compatible assistant. Annotate, approve, and copy structured feedback on AI-generated plans.",
   "license": "MIT",
   "author": {
