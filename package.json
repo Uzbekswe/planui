@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "marked": "^14.0.0"
+    "marked": "^18.0.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
