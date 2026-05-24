@@ -1,0 +1,57 @@
+{
+  "name": "@uzbekswe/planui",
+  "version": "0.1.0",
+  "description": "Interactive browser-based UI for Claude Code plan mode — annotate, approve, and copy structured feedback on AI-generated plans.",
+  "license": "MIT",
+  "author": {
+    "name": "Mukhammadali",
+    "email": "uzbekswe@gmail.com",
+    "url": "https://github.com/Uzbekswe"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Uzbekswe/planui.git"
+  },
+  "homepage": "https://github.com/Uzbekswe/planui#readme",
+  "bugs": {
+    "url": "https://github.com/Uzbekswe/planui/issues"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "mcp",
+    "model-context-protocol",
+    "plan",
+    "plan-mode",
+    "planui",
+    "ai-agent",
+    "html-renderer",
+    "mermaid",
+    "annotation"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "planui": "dist/cli.js",
+    "planui-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc && cp -r src/template dist/template && chmod 755 dist/cli.js dist/server.js",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "marked": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

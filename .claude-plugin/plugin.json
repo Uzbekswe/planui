@@ -1,0 +1,12 @@
+{
+  "name": "planui",
+  "version": "0.1.0",
+  "description": "Interactive browser-based UI for Claude Code plan mode — annotate, approve, and copy structured feedback on AI-generated plans. Pinned local MCP install, plan archive, version badge.",
+  "author": {
+    "name": "Mukhammadali",
+    "url": "https://github.com/Uzbekswe"
+  },
+  "homepage": "https://github.com/Uzbekswe/planui",
+  "category": "productivity",
+  "installInstructions": "Run: npx -y @uzbekswe/planui@latest setup\nThen restart Claude Code and use /planui <task> in any session."
+}

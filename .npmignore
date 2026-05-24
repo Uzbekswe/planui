@@ -1,0 +1,6 @@
+src/
+.github/
+.claude-plugin/
+tsconfig.json
+.gitignore
+.npmignore

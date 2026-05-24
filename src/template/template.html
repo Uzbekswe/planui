@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-font="sans" data-color="blue">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{TITLE}} — planui</title>
+  <style>{{STYLES}}</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <h1>{{TITLE}}</h1>
+  {{STATUS_BADGE}}
+  <a id="version-badge" href="https://github.com/Uzbekswe/planui/blob/main/CHANGELOG.md"
+     target="_blank" rel="noopener">@uzbekswe/planui@{{TOOL_VERSION}}</a>
+  <div style="position:relative">
+    <button id="gear-btn" title="Appearance settings" aria-label="Settings">⚙</button>
+    <div id="gear-menu">
+      <div class="gear-row">
+        <label for="gear-theme">Theme</label>
+        <select id="gear-theme">
+          <option value="dark">Dark</option>
+          <option value="midnight">Midnight</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+      <div class="gear-row">
+        <label for="gear-font">Font</label>
+        <select id="gear-font">
+          <option value="sans">Sans (Inter)</option>
+          <option value="serif">Serif</option>
+          <option value="mono">Mono</option>
+        </select>
+      </div>
+      <div class="gear-row">
+        <label for="gear-color">Accent color</label>
+        <select id="gear-color">
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="purple">Purple</option>
+          <option value="white">White</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div id="content">
+  <nav id="sidebar" aria-label="Table of contents"></nav>
+  <main id="main">
+    {{SECTIONS_HTML}}
+  </main>
+</div>
+
+<!-- Action bar -->
+<div id="action-bar">
+  <button id="approve-btn" class="action-btn primary">Approve plan</button>
+  <button id="copy-feedback-btn" class="action-btn">Copy feedback</button>
+  <button id="export-btn" class="action-btn">Export annotated</button>
+  <span id="bar-status"></span>
+  <span id="copy-confirm">Copied!</span>
+</div>
+
+<!-- Footer -->
+<div id="footer">
+  <span>Rendered: {{RENDERED_AT}}</span>
+  <span>Plan ID: {{PLAN_ID}}</span>
+</div>
+
+<!-- Data island -->
+<script id="planui-data" type="application/json">{{PLAN_JSON}}</script>
+<script>{{ACTIONS_JS}}</script>
+</body>
+</html>
