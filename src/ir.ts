@@ -6,6 +6,7 @@ export interface PlanStep {
   title: string;
   bodyMarkdown: string;
   dependsOn: number[];  // indices of steps this step depends on
+  diffStatus?: "new" | "modified" | "unchanged" | "removed";
 }
 
 export interface PlanQuestion {
@@ -45,6 +46,7 @@ export interface PlanDocument {
   renderedAt: string;   // ISO-8601
   toolVersion: string;  // injected at compile time
   planId: string;       // unique slug for this render
+  version?: number;     // for future diff chaining
 }
 
 export interface Prefs {

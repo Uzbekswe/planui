@@ -24,7 +24,7 @@ Turn Claude Code's plan mode into an interactive browser UI. Instead of reading 
 Pick the latest stable version from the [releases page](https://github.com/Uzbekswe/planui/releases) and install it globally:
 
 ```bash
-npm install -g @uzbekswe/planui@0.2.0
+npm install -g @uzbekswe/planui@0.3.0
 ```
 
 > **Why pin the version?** `@latest` executes whatever is newest on the registry without review. Pinning to `@0.2.0` means you control exactly what runs on your machine. You can read the source at that tag before installing.
@@ -62,7 +62,7 @@ Claude explores your codebase, writes a structured plan, and automatically opens
 After setup, run these to confirm everything is wired up:
 
 ```bash
-planui version        # → 0.2.0
+planui version        # → 0.3.0
 planui check-update   # → up to date (or shows if a new version exists)
 ```
 
@@ -168,7 +168,7 @@ Useful for rendering saved plans, sharing with teammates, or testing a new plan 
 #    https://github.com/Uzbekswe/planui/blob/main/CHANGELOG.md
 
 # 2. Install the new version
-npm install -g @uzbekswe/planui@0.3.0
+npm install -g @uzbekswe/planui@0.4.0
 
 # 3. Update the pinned MCP path and slash command
 planui upgrade
@@ -179,9 +179,9 @@ planui upgrade
 `planui check-update` will remind you when a newer version is available:
 
 ```
-Update available: 0.2.0 → 0.3.0
-Review: https://github.com/Uzbekswe/planui/compare/v0.2.0...v0.3.0
-Run: npm install -g @uzbekswe/planui@0.3.0 && planui upgrade
+Update available: 0.3.0 → 0.4.0
+Review: https://github.com/Uzbekswe/planui/compare/v0.3.0...v0.4.0
+Run: npm install -g @uzbekswe/planui@0.4.0 && planui upgrade
 ```
 
 ---

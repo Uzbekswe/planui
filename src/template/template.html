@@ -34,37 +34,37 @@
   <div style="position:relative">
     <button id="gear-btn" title="Appearance settings" aria-label="Settings">⚙</button>
     <div id="gear-menu">
-      <div class="gear-row">
-        <label for="gear-theme">Theme</label>
-        <select id="gear-theme">
-          <option value="system">System</option>
-          <option value="dark">Dark</option>
-          <option value="midnight">Midnight</option>
-          <option value="light">Light</option>
-        </select>
+      <div class="pref-row">
+        <span class="pref-label">Theme</span>
+        <div class="seg-ctrl" data-pref="theme">
+          <button class="seg-btn active" data-val="dark">Dark</button>
+          <button class="seg-btn" data-val="midnight">Midnight</button>
+          <button class="seg-btn" data-val="light">Light</button>
+          <button class="seg-btn" data-val="system">System</button>
+        </div>
       </div>
-      <div class="gear-row">
-        <label for="gear-font">Font</label>
-        <select id="gear-font">
-          <option value="sans">Sans (Inter)</option>
-          <option value="serif">Serif</option>
-          <option value="mono">Mono</option>
-        </select>
+      <div class="pref-row">
+        <span class="pref-label">Font</span>
+        <div class="seg-ctrl" data-pref="font">
+          <button class="seg-btn active" data-val="sans">Sans</button>
+          <button class="seg-btn" data-val="serif">Serif</button>
+          <button class="seg-btn" data-val="mono">Mono</button>
+        </div>
       </div>
-      <div class="gear-row">
-        <label for="gear-color">Accent color</label>
-        <select id="gear-color">
-          <option value="blue">Blue</option>
-          <option value="green">Green</option>
-          <option value="purple">Purple</option>
-          <option value="white">White</option>
-        </select>
+      <div class="pref-row">
+        <span class="pref-label">Accent</span>
+        <div class="seg-ctrl swatches" data-pref="color">
+          <button class="seg-btn swatch active" data-val="blue" style="--swatch:#58a6ff" title="Blue"></button>
+          <button class="seg-btn swatch" data-val="green" style="--swatch:#3fb950" title="Green"></button>
+          <button class="seg-btn swatch" data-val="purple" style="--swatch:#bc8cff" title="Purple"></button>
+          <button class="seg-btn swatch" data-val="white" style="--swatch:#e6edf3" title="White"></button>
+        </div>
       </div>
     </div>
   </div>
   <div id="progress-rail"><div id="progress-fill"></div></div>
 </div>
-
+{{QUESTIONS_INDICATOR}}
 <!-- Content -->
 <div id="content">
   <nav id="sidebar" aria-label="Table of contents"></nav>
@@ -75,6 +75,8 @@
 
 <!-- Action bar -->
 <div id="action-bar">
+  <button id="focus-btn" class="action-btn" title="Focus mode: hide resolved steps">Focus</button>
+  <button id="resolve-remaining-btn" class="action-btn" title="Approve all unreviewed steps">Resolve remaining</button>
   <button id="approve-btn" class="action-btn primary">Approve plan</button>
   <button id="copy-feedback-btn" class="action-btn">Copy feedback</button>
   <button id="export-btn" class="action-btn">Export annotated</button>
