@@ -1,5 +1,11 @@
 # @uzbekswe/planui
 
+[![npm version](https://img.shields.io/npm/v/@uzbekswe/planui)](https://www.npmjs.com/package/@uzbekswe/planui)
+[![npm downloads](https://img.shields.io/npm/dm/@uzbekswe/planui)](https://www.npmjs.com/package/@uzbekswe/planui)
+[![CI](https://github.com/Uzbekswe/planui/actions/workflows/ci.yml/badge.svg)](https://github.com/Uzbekswe/planui/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/npm/l/@uzbekswe/planui)](https://github.com/Uzbekswe/planui/blob/main/LICENSE)
+[![Node.js >= 20](https://img.shields.io/node/v/@uzbekswe/planui)](https://nodejs.org)
+
 Interactive browser-based UI for Claude Code plan mode. When Claude generates a plan, `planui` opens it as a rich HTML page where you can annotate steps, answer open questions, and copy structured feedback back to Claude — all in one click.
 
 **Current stable release: [v0.2.0](https://github.com/Uzbekswe/planui/tree/v0.2.0)**

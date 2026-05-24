@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/github/mcp-registry/main/schema/server-schema.json",
+  "name": "io.github.Uzbekswe/planui",
+  "title": "planui — Claude Code Plan Mode UI",
+  "description": "Interactive browser-based UI for Claude Code plan mode. Annotate, approve, and copy structured feedback on AI-generated plans. Pinned local MCP install, plan archive, version badge.",
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@uzbekswe/planui",
+      "version": "0.2.0",
+      "transport": { "type": "stdio" }
+    }
+  ],
+  "repository": "https://github.com/Uzbekswe/planui",
+  "license": "MIT"
+}

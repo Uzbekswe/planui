@@ -16,6 +16,7 @@
   "bugs": {
     "url": "https://github.com/Uzbekswe/planui/issues"
   },
+  "funding": "https://github.com/sponsors/Uzbekswe",
   "keywords": [
     "claude",
     "claude-code",
@@ -32,6 +33,8 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "sideEffects": false,
+  "mcpName": "io.github.Uzbekswe/planui",
   "bin": {
     "planui": "dist/cli.js",
     "planui-mcp": "dist/server.js"
@@ -41,10 +44,16 @@
     "CHANGELOG.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "rm -rf dist && tsc && cp -r src/template dist/template && chmod 755 dist/cli.js dist/server.js",
     "dev": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "prepublishOnly": "npm run build && npm run typecheck"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

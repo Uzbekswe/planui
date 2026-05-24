@@ -1,6 +1,12 @@
 src/
+test/
 .github/
 .claude-plugin/
 tsconfig.json
+.editorconfig
 .gitignore
 .npmignore
+.npmrc
+release-please-config.json
+.release-please-manifest.json
+server.json
