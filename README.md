@@ -6,7 +6,9 @@
 [![License: MIT](https://img.shields.io/npm/l/@uzbekswe/planui)](https://github.com/Uzbekswe/planui/blob/main/LICENSE)
 [![Node.js >= 20](https://img.shields.io/node/v/@uzbekswe/planui)](https://nodejs.org)
 
-Turn Claude Code's plan mode into an interactive browser UI. Instead of reading a wall of markdown in the terminal, you get clickable step cards, inline answer fields for open questions, and a one-click **Copy Feedback** button that pastes a structured response straight back to Claude.
+**PlanUI adds structured review workflows to AI coding agents.**
+
+Before an agent writes a single line of code, it surfaces the implementation plan as an interactive browser UI. You approve steps, answer questions, and strike anything you don't want — then click one button to send structured feedback back to the agent. Works with **Claude Code**, **Codex CLI**, and any MCP-compatible assistant.
 
 ![planui demo — dark mode step cards with sidebar TOC](https://raw.githubusercontent.com/Uzbekswe/planui/main/docs/screenshot-dark.png)
 
@@ -17,43 +19,55 @@ Turn Claude Code's plan mode into an interactive browser UI. Instead of reading 
 ### Prerequisites
 
 - **Node.js 20 or higher** — check with `node --version`
-- **Claude Code** — the CLI or desktop app ([install guide](https://docs.anthropic.com/en/docs/claude-code))
+- **Claude Code** — the CLI or desktop app ([install guide](https://docs.anthropic.com/en/docs/claude-code)) **or** **Codex CLI** — ([install guide](https://github.com/openai/codex))
 
 ### Step 1 — Install
 
 Pick the latest stable version from the [releases page](https://github.com/Uzbekswe/planui/releases) and install it globally:
 
 ```bash
-npm install -g @uzbekswe/planui@0.3.0
+npm install -g @uzbekswe/planui@0.3.1
 ```
 
-> **Why pin the version?** `@latest` executes whatever is newest on the registry without review. Pinning to `@0.2.0` means you control exactly what runs on your machine. You can read the source at that tag before installing.
+> **Why pin the version?** `@latest` executes whatever is newest on the registry without review. Pinning means you control exactly what runs on your machine. You can read the source at that tag before installing.
 
 ### Step 2 — Run setup
 
+**For Claude Code:**
 ```bash
 planui setup
 ```
 
 This does three things and nothing else:
-
 1. Adds a `planui` entry to `~/.claude.json` pointing to the exact server file you just installed
 2. Copies the `/planui` slash command to `~/.claude/commands/planui.md`
 3. Opens a welcome plan in your browser so you can see it working
 
-### Step 3 — Restart Claude Code
+**For Codex CLI:**
+```bash
+planui setup codex
+```
 
-Close and reopen Claude Code (or reload the window). The `planui` MCP server will appear in `/mcp`.
+Registers planui with `codex mcp add` and validates the registration before reporting success.
+
+### Step 3 — Restart your assistant
+
+Close and reopen Claude Code or Codex (or reload the window). The `planui` MCP server will appear in `/mcp`.
 
 ### Step 4 — Use it
 
-In any Claude Code session, type:
-
+**Claude Code:**
 ```
 /planui add idempotency to /v2/refresh
 ```
+or just say: **"use planui to plan this"**
 
-Claude explores your codebase, writes a structured plan, and automatically opens it as an interactive HTML page in your browser. Annotate the steps, answer any open questions, then click **Approve plan** or **Copy feedback** to send your response back.
+**Codex CLI:**
+```
+use planui to plan: add idempotency to /v2/refresh
+```
+
+The agent explores your codebase, writes a structured plan, and automatically opens it as an interactive HTML page in your browser. Annotate the steps, answer any open questions, then click **Approve plan** or **Copy feedback** to send your response back.
 
 ---
 
@@ -62,8 +76,18 @@ Claude explores your codebase, writes a structured plan, and automatically opens
 After setup, run these to confirm everything is wired up:
 
 ```bash
-planui version        # → 0.3.0
+planui version        # → 0.3.1
 planui check-update   # → up to date (or shows if a new version exists)
+planui doctor         # → shows registration status for all assistants
+```
+
+`planui doctor` shows whether each integration is registered, not installed, or broken:
+
+```
+  name      assistant       status
+  ────────  ──────────────  ───────────────
+  ✓ claude   Claude Code     registered
+  – codex    Codex CLI       not-installed
 ```
 
 To confirm the MCP server is registered with an absolute path (not `npx @latest`):
@@ -179,8 +203,8 @@ planui upgrade
 `planui check-update` will remind you when a newer version is available:
 
 ```
-Update available: 0.3.0 → 0.4.0
-Review: https://github.com/Uzbekswe/planui/compare/v0.3.0...v0.4.0
+Update available: 0.3.1 → 0.4.0
+Review: https://github.com/Uzbekswe/planui/compare/v0.3.1...v0.4.0
 Run: npm install -g @uzbekswe/planui@0.4.0 && planui upgrade
 ```
 

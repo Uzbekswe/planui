@@ -1,7 +1,7 @@
 {
   "name": "@uzbekswe/planui",
-  "version": "0.3.0",
-  "description": "Interactive browser-based UI for Claude Code plan mode — annotate, approve, and copy structured feedback on AI-generated plans.",
+  "version": "0.3.1",
+  "description": "Structured review workflows for AI coding agents — Claude Code, Codex CLI, and any MCP-compatible assistant. Annotate, approve, and copy structured feedback on AI-generated plans.",
   "license": "MIT",
   "author": {
     "name": "Mukhammadali",
@@ -20,12 +20,16 @@
   "keywords": [
     "claude",
     "claude-code",
+    "codex",
     "mcp",
     "model-context-protocol",
+    "multi-assistant",
     "plan",
     "plan-mode",
     "planui",
     "ai-agent",
+    "ai-review",
+    "human-in-the-loop",
     "html-renderer",
     "mermaid",
     "annotation"
