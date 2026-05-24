@@ -308,6 +308,18 @@ To review the source before running:
 
 ---
 
+## Contributing
+
+Contributions are welcome. Please open an issue first to discuss what you'd like to change, then submit a pull request against `main`.
+
+- Bug reports: [open an issue](https://github.com/Uzbekswe/planui/issues)
+- Feature requests: [open an issue](https://github.com/Uzbekswe/planui/issues) with the `enhancement` label
+- Security issues: email directly rather than opening a public issue
+
+---
+
 ## License
 
-MIT — [Mukhammadali](https://github.com/Uzbekswe)
+Distributed under the **MIT License** — see [`LICENSE`](./LICENSE) for the full text.
+
+Copyright © 2026 [Mukhammadali](https://github.com/Uzbekswe)
