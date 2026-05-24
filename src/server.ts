@@ -8,51 +8,57 @@ import { renderToHtml } from "./render.js";
 import { savePlan } from "./archive.js";
 import { asyncUpdateBanner } from "./update.js";
 
-const TOOL_DESCRIPTION = `Render a plan as an interactive, annotatable HTML page the user can review in their browser.
+const TOOL_DESCRIPTION = `PlanUI adds structured review workflows to AI coding agents.
 
-Use this tool whenever you have produced a multi-step plan, a non-trivial change proposal, or any structured implementation plan — instead of printing a wall of markdown into chat.
+Use this tool to turn any multi-step implementation plan into an interactive browser UI where the human can approve, strike, comment, and prioritize steps before work begins.
+
+WHEN TO USE:
+  Before executing any non-trivial coding task — surface the plan, get human sign-off, then proceed.
+  Works with Claude Code, Codex CLI, and any MCP-compatible assistant.
+
+ACTIVATION PHRASES (humans use these to invoke you):
+  "use planui"
+  "open planui"
+  "plan with planui before coding"
+  "render this plan with planui"
+  "show me the plan in planui"
 
 INPUTS:
   title    — Short human-readable title (one line, no markdown)
   markdown — The full plan in markdown
 
-RECOGNIZED H2 SECTIONS (case-insensitive, all optional):
-  ## Summary | ## Overview | ## TL;DR       — short prose intro
-  ## Open Questions | ## Questions          — each bullet becomes an inline answer field
-  ## Steps | ## Plan | ## Implementation    — numbered list; each item becomes an annotatable step card
-  ## Risks | ## Risk                        — bullet list; prefix [high] / [med] / [low] for severity badge
-  ## Preconditions | ## Requirements        — bullet list rail card
-  ## Files | ## Files Touched               — bullet list rendered as monospace chips
-  ## Stack Changes | ## Dependencies        — bullet list rail card
-  ## Status                                 — single line shown as a badge in the header
-  Any other H2 is preserved as a note card.
-
-STEP CONVENTIONS:
-  - Use a numbered list: 1. 2. 3.
-  - Mark dependencies: "Step title (depends on 2, 3)" — those steps show a "blocked by" badge.
-  - Reference files in backticks: \`src/server.ts\`
-
-RISK SEVERITY:
-  Prefix or inline: "[high] data loss risk", "[med] flaky test", "[low] minor UX nit"
+PLAN FORMAT (all sections optional):
+  ## Summary | ## Overview | ## TL;DR       — 1–3 sentence overview
+  ## Open Questions | ## Questions          — each bullet → inline answer field
+                                              (Approve button disabled until all answered)
+  ## Steps | ## Plan | ## Implementation    — numbered list; each → annotatable step card
+                                              mark dependencies: "Step title (depends on 2, 3)"
+  ## Risks | ## Risk                        — [high] / [med] / [low] severity badges
+  ## Preconditions | ## Requirements        — prerequisite checklist
+  ## Files | ## Files Touched               — paths grouped by directory in the UI
+  ## Stack Changes | ## Dependencies        — new deps / infra changes
+  ## Status                                 — single line shown as header badge
+  Any other H2                              — preserved as a note card
 
 AFTER CALLING THIS TOOL:
-  Tell the user: "I've rendered the plan in your browser. Review the steps, answer any open questions, annotate or approve steps, then click 'Copy feedback' and paste it back here."
+  Tell the user: "I've opened the plan in your browser. Review each step
+  (approve or strike), answer any open questions, then click Approve plan or
+  Copy feedback and paste it back here."
 
-  On the user's next message, look for a fenced \`planresponse\` block:
-  \`\`\`planresponse <plan_id>
-  approve            ← proceed with all steps
-  q1: answer text    ← answers to open questions
-  \`\`\`
-  OR:
-  \`\`\`planresponse <plan_id>
-  modify
-  q1: answer text
-  feedback:
-    Step 2 [remove]: description
-    Step 3 [feedback]: please add error handling
+  On the user's next message, look for a \`planresponse\` block:
+  \`\`\`planresponse <planId>
+  action: approve | modify | revise
+  questions:
+    q1: answer text
+  steps:
+    Step 3 [remove]: reason
+    Step 7 [feedback]: use v2 API [high]
   \`\`\`
 
-  Parse the action ("approve" or "modify") and act accordingly.`;
+  action values:
+    approve — all steps approved; proceed with implementation
+    modify  — one or more steps struck; revise plan before proceeding
+    revise  — human left comments but wants changes without fully categorizing them`;
 
 function openBrowser(url: string): void {
   const cmds: Record<string, string> = {

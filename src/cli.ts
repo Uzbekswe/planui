@@ -6,22 +6,31 @@ import { extractPlan, TOOL_VERSION } from "./extract.js";
 import { renderToHtml } from "./render.js";
 import { savePlan } from "./archive.js";
 import { checkForUpdate } from "./update.js";
-import { runSetup, runUpgrade, runUninstall } from "./setup.js";
+import { runSetup, runSetupCodex, runUpgrade, runUninstall, runDoctor, runIntegrations } from "./setup.js";
+import { ALL_INTEGRATIONS } from "./integrations/index.js";
 
 function printUsage(): void {
   console.log(`
-planui — interactive plan-mode UI for Claude Code
+planui — structured review workflows for AI coding agents
 
 Usage:
   planui setup                   Add planui to Claude Code (one-time install)
+  planui setup codex             Add planui to Codex CLI
   planui upgrade                 Update MCP path + slash command after npm upgrade
   planui uninstall               Remove MCP server entry and slash command
+  planui doctor                  Show registration status for all integrations
+  planui integrations            List all supported integrations and their capabilities
+  planui prompt [assistant]      Print recommended invocation template for an assistant
   planui render <file.md>        Render a plan markdown file in the browser
   planui version                 Print installed version
   planui check-update            Compare installed version against npm registry
   planui --help                  Show this help
 
-After setup, restart Claude Code and use /planui <task> in any session.
+Assistants: claude (default), codex
+
+After setup, restart your assistant and use:
+  Claude Code: /planui <task>   or  "use planui to plan: <task>"
+  Codex CLI:   "use planui to plan: <task>"
 
 Share with others (inspect first):
   https://github.com/Uzbekswe/planui/tree/v${TOOL_VERSION}
@@ -82,12 +91,31 @@ async function main(): Promise<void> {
   }
 
   switch (cmd) {
-    case "setup":        await runSetup();             break;
-    case "upgrade":      await runUpgrade();           break;
-    case "uninstall":    await runUninstall();         break;
+    case "setup":
+      if (argv[1] === "codex") {
+        await runSetupCodex();
+      } else {
+        await runSetup();
+      }
+      break;
+    case "upgrade":      await runUpgrade();             break;
+    case "uninstall":    await runUninstall();           break;
+    case "doctor":       await runDoctor();              break;
+    case "integrations": await runIntegrations();        break;
+    case "prompt": {
+      const assistantName = argv[1] || "claude";
+      const adapter = ALL_INTEGRATIONS.find(a => a.name === assistantName);
+      if (!adapter) {
+        const names = ALL_INTEGRATIONS.map(a => a.name).join(", ");
+        console.error(`Unknown assistant: ${assistantName}\nAvailable: ${names}`);
+        process.exit(1);
+      }
+      console.log(adapter.promptTemplate());
+      break;
+    }
     case "render":       await runRender(argv.slice(1)); break;
-    case "version":      console.log(TOOL_VERSION);   break;
-    case "check-update": await runCheckUpdate();       break;
+    case "version":      console.log(TOOL_VERSION);     break;
+    case "check-update": await runCheckUpdate();         break;
     default:
       // Convenience: planui <file.md>
       if (cmd.endsWith(".md") || cmd.includes("/") || cmd.includes("\\")) {
